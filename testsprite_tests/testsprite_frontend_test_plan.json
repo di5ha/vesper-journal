@@ -1,0 +1,1307 @@
+[
+  {
+    "id": "TC001",
+    "title": "Sign in with valid credentials and reach dashboard",
+    "description": "Verifies a user can sign in with email/password and is taken to the dashboard.",
+    "category": "User Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Dashboard\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Sign in shows error message for invalid credentials",
+    "description": "Verifies the login form displays an error when credentials are invalid.",
+    "category": "User Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"nonexistent_user_12345@example.com\" into the email input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"WrongPassword!123\" into the password input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"invalid\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/auth\""
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Switch to sign up mode from auth page",
+    "description": "Verifies the user can switch from sign-in to sign-up mode on the authentication page.",
+    "category": "User Authentication",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Sign in\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign up\" link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Create account\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"email input field\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"password input field\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Sign up submits and shows check-email info message",
+    "description": "Verifies account registration submission shows an informational message to check email.",
+    "category": "User Authentication",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign up\" link"
+      },
+      {
+        "type": "action",
+        "description": "Type \"new_user_vesper_01@example.com\" into the email input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"ValidPass!234\" into the password input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Create account\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"check email\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Sign in persists session and allows direct access to protected route",
+    "description": "Verifies that after signing in, the user can access a protected route without being redirected back to auth.",
+    "category": "User Authentication",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email input field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password input field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /drift"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/drift\""
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Auth page loads with login form elements visible",
+    "description": "Verifies the authentication page renders the expected sign-in form controls on initial load.",
+    "category": "User Authentication",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"email input field\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"password input field\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Sign in\" button is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"Sign up\" link is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Create a new journal entry and verify auto-save and sidebar listing",
+    "description": "Verifies a user can start a new entry, type content, and see the entry auto-saved with a visible Saved indicator and a new sidebar item.",
+    "category": "Journal Entry Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"New Entry\" button in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Today I started a new entry and want it to autosave.\" into the journal editor textarea"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Saved\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Search entries via semantic search and open a result",
+    "description": "Verifies semantic search returns a results list after debounce and a clicked result loads the entry in the editor.",
+    "category": "Journal Entry Management",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"today\" into the sidebar search input"
+      },
+      {
+        "type": "action",
+        "description": "Wait for 500ms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"search results list\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click a search result item"
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Visual save-state transitions: Saving… then Saved after typing stops",
+    "description": "Verifies the editor shows a Saving… indicator during persistence and then transitions to Saved once the auto-save completes.",
+    "category": "Journal Entry Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click the \"New Entry\" button in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Type \"Checking save state transitions.\" into the journal editor textarea"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Saving\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Saved\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Search with a gibberish query shows no results (empty state)",
+    "description": "Verifies the sidebar search handles queries with no matches by showing a visible empty/no results state.",
+    "category": "Journal Entry Management",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"zzzxqy_not_a_real_topic_123\" into the sidebar search input"
+      },
+      {
+        "type": "action",
+        "description": "Wait for 500ms"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"No results\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Insight panel shows loading skeleton then renders completed analysis (happy path)",
+    "description": "Verifies the insight panel displays a loading skeleton while analysis is pending and then shows completed analysis details.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"insight panel loading skeleton\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"mood score\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Insight panel updates when switching between two entries",
+    "description": "Verifies selecting another entry refreshes the insight panel and shows loading before new analysis content appears.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"mood score\" is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click a different existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"insight panel loading skeleton\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Fallback state: Analysis unavailable when analysis fails",
+    "description": "Verifies the insight panel shows the 'Analysis unavailable' fallback message when analysis cannot be retrieved or generated.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"insight panel loading skeleton\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Analysis unavailable\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Mood score is displayed as a colored arc in the insight panel",
+    "description": "Verifies the mood score visualization renders as a colored arc for the active entry.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"mood score arc\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"mood score\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Themes render as pill tags in the insight panel",
+    "description": "Verifies the themes section displays theme items as pill-style tags for the active entry.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"themes\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"theme pill tag\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Cognitive distortions render as warning cards",
+    "description": "Verifies cognitive distortions are shown as warning cards in the insight panel for the active entry.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"cognitive distortions\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"cognitive distortion warning card\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Insight panel shows sentiment/observation text when analysis is available",
+    "description": "Verifies the insight panel displays sentiment and an observation/summary text for the active entry after analysis completes.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"sentiment\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"observation\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Insight panel remains present and readable after scrolling the dashboard layout",
+    "description": "Verifies the insight panel content remains visible and can be viewed after scrolling, without losing the displayed analysis state.",
+    "category": "AI Analysis Insight Panel",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the email/password field for password"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click an existing journal entry in the sidebar"
+      },
+      {
+        "type": "action",
+        "description": "Scroll to the insight panel section showing themes"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"theme pill tag\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Load Drift Timeline and render chart after skeleton",
+    "description": "Verifies the Drift Timeline page shows a loading state and then renders the mood timeline chart.",
+    "category": "Drift Timeline",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a loading skeleton is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mood timeline chart is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the page title contains \"Drift\""
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Themes pills are visible on Drift Timeline",
+    "description": "Verifies the Drift Timeline page displays available themes as clickable pills.",
+    "category": "Drift Timeline",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Themes\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a theme pill list is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Filter timeline by selecting a theme pill",
+    "description": "Verifies clicking a theme pill updates the timeline to a filtered view.",
+    "category": "Drift Timeline",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click the first visible theme pill"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected theme pill is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mood timeline chart is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Switch theme filters between two different theme pills",
+    "description": "Verifies the user can change the active theme filter by clicking a different theme pill.",
+    "category": "Drift Timeline",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click the first visible theme pill"
+      },
+      {
+        "type": "action",
+        "description": "Click a different visible theme pill"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the newly selected theme pill is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mood timeline chart is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "View chart tooltip information by clicking a data point",
+    "description": "Verifies the custom tooltip content appears when interacting with a point on the timeline chart.",
+    "category": "Drift Timeline",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "action",
+        "description": "Click on a visible point on the mood timeline chart"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a tooltip is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Mood\" is visible in the tooltip"
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Drift Timeline handles slow loading by keeping skeleton until chart appears",
+    "description": "Verifies that during a longer load, the skeleton remains visible until the chart is rendered.",
+    "category": "Drift Timeline",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a loading skeleton is visible"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the mood timeline chart to appear"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the mood timeline chart is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC025",
+    "title": "Empty state when no themes are available for the user",
+    "description": "Verifies the Drift Timeline page shows an empty state when the user has no analyzed entries and thus no themes.",
+    "category": "Drift Timeline",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Drift\" navigation item"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"No themes\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"No analyzed entries\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC026",
+    "title": "Generate a new weekly report and view its details",
+    "description": "Verifies a user can generate a new weekly report and open the newly created report details view.",
+    "category": "Weekly Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Reports\" in the app navigation"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Generate Report\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Report\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC027",
+    "title": "Newly generated report appears in the reports list",
+    "description": "Verifies generating a weekly report results in a new report card appearing in the list/grid.",
+    "category": "Weekly Reports",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Reports\" in the app navigation"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Generate Report\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"report card\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC028",
+    "title": "Reports list loads and displays without empty-state errors",
+    "description": "Verifies the reports page loads successfully and displays a list/grid area for reports (even if no reports exist).",
+    "category": "Weekly Reports",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click on \"Reports\" in the app navigation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify page title contains \"Reports\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify element \"reports grid\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC029",
+    "title": "Dashboard to Drift via sidebar navigation",
+    "description": "Verifies an authenticated user can navigate from Dashboard to Drift Timeline using the sidebar.",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click Drift nav link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/drift\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Drift\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC030",
+    "title": "Drift to Reports via sidebar navigation",
+    "description": "Verifies an authenticated user can navigate from Drift Timeline to Reports using the sidebar.",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click Drift nav link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/drift\""
+      },
+      {
+        "type": "action",
+        "description": "Click Reports nav link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/reports\""
+      }
+    ]
+  },
+  {
+    "id": "TC031",
+    "title": "Reports to Dashboard via sidebar navigation",
+    "description": "Verifies an authenticated user can navigate to Dashboard from Reports using the sidebar.",
+    "category": "Navigation",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "action",
+        "description": "Click Reports nav link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/reports\""
+      },
+      {
+        "type": "action",
+        "description": "Click Dashboard nav link"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      }
+    ]
+  },
+  {
+    "id": "TC032",
+    "title": "Sign out from Dashboard redirects to Auth",
+    "description": "Verifies the Sign out button logs the user out and returns them to the authentication page.",
+    "category": "Navigation",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Click Sign out button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/auth\""
+      }
+    ]
+  },
+  {
+    "id": "TC033",
+    "title": "Auth page remains accessible while authenticated",
+    "description": "Verifies that an authenticated user can still reach the Auth page without breaking navigation flow.",
+    "category": "Navigation",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Sign in\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "action",
+        "description": "Navigate to /auth"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/auth\""
+      }
+    ]
+  }
+]

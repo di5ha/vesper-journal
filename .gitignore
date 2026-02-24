@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build output
+frontend/dist/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Python virtual env
+backend/venv/
+backend/.venv/
+
+# Generated
+*.pdf

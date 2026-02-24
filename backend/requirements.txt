@@ -1,0 +1,19 @@
+fastapi==0.115.0
+uvicorn[standard]
+supabase
+pydantic
+pydantic-settings
+python-dotenv
+httpx
+
+# LLM + Embeddings — LiteLLM proxy via OpenAI SDK
+# text-embedding-3-small (dimensions=384) replaces local sentence-transformers
+openai
+
+# LangChain (future semantic chains)
+langchain
+langchain-openai
+langchain-text-splitters
+
+# PDF reports
+reportlab
