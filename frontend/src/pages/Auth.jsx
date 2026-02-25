@@ -2,13 +2,9 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
-/**
- * Auth page — handles both Sign Up and Login in one view.
- * Toggle between modes with the link at the bottom.
- */
 export default function Auth() {
     const navigate = useNavigate()
-    const [mode, setMode] = useState('login')   // 'login' | 'signup'
+    const [mode, setMode] = useState('login')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [error, setError] = useState(null)
@@ -18,14 +14,10 @@ export default function Auth() {
         e.preventDefault()
         setError(null)
         setLoading(true)
-
         try {
             if (mode === 'signup') {
                 const { error } = await supabase.auth.signUp({ email, password })
                 if (error) throw error
-                // After sign-up, Supabase may require email confirmation.
-                // If confirmed automatically (e.g. in dev), onAuthStateChange fires and
-                // ProtectedRoute will redirect to /dashboard.
                 setError({ message: 'Check your email to confirm your account.', isInfo: true })
             } else {
                 const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -42,48 +34,82 @@ export default function Auth() {
     const isSignup = mode === 'signup'
 
     return (
-        <div className="min-h-screen bg-[#0f0f13] flex items-center justify-center px-4">
-            {/* Ambient glow */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[50%] -translate-x-1/2 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-3xl" />
-            </div>
-
-            <div className="relative w-full max-w-sm">
+        <div className="min-h-screen bg-surface flex">
+            {/* ── Left panel — Redo-style hero gradient ── */}
+            <div
+                className="hidden lg:flex flex-col w-[440px] shrink-0 p-10 justify-between"
+                style={{ background: 'linear-gradient(160deg, #FA9819 0%, #B6C9CF 45%, #1E3D59 100%)' }}
+            >
                 {/* Logo */}
-                <div className="mb-8 text-center">
-                    <span className="text-3xl font-semibold tracking-tight text-white">
-                        ✦ vesper
-                    </span>
-                    <p className="mt-2 text-sm text-white/40">
-                        {isSignup ? 'Begin your reflection journey.' : 'Welcome back.'}
-                    </p>
+                <span className="text-white font-bold text-2xl tracking-tight">
+                    ✦ vesper
+                </span>
+
+                {/* Headline */}
+                <div>
+                    <p className="text-white/60 text-sm font-medium mb-3 uppercase tracking-widest">Your Journal</p>
+                    <h1 className="font-serif text-white text-4xl leading-snug">
+                        Write, reflect,<br />and understand<br />yourself better.
+                    </h1>
                 </div>
 
-                {/* Card */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-8 shadow-2xl backdrop-blur-sm">
-                    <h1 className="text-lg font-medium text-white mb-6">
-                        {isSignup ? 'Create account' : 'Sign in'}
-                    </h1>
+                {/* Feature list */}
+                <div className="space-y-4">
+                    {[
+                        'AI-powered mood & theme analysis',
+                        'Emotional drift timeline',
+                        'Weekly insight reports',
+                    ].map((f, i) => (
+                        <div key={i} className="flex items-center gap-3">
+                            <span className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </span>
+                            <span className="text-white/80 text-sm">{f}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+            {/* ── Right panel — form ── */}
+            <div className="flex-1 flex flex-col items-center justify-center px-8 py-12 bg-surface">
+                {/* Mobile logo */}
+                <span className="lg:hidden font-bold text-ink text-2xl mb-10 self-start">✦ vesper</span>
+
+                <div className="w-full max-w-sm">
+                    {/* Section heading — Redo style */}
+                    <div className="mb-8">
+                        <span className="text-accent font-bold text-sm">
+                            {isSignup ? '01' : '01'}
+                        </span>
+                        <h2 className="text-3xl font-bold text-ink mt-0.5">
+                            {isSignup ? 'Create account' : 'Sign in'}
+                        </h2>
+                        <p className="text-muted text-sm mt-2">
+                            {isSignup ? 'Begin your reflection journey.' : 'Continue your journaling practice.'}
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
                         {/* Email */}
                         <div>
-                            <label className="block text-xs font-medium text-white/50 mb-1.5 uppercase tracking-wider">
+                            <label className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wider">
                                 Email
                             </label>
                             <input
                                 type="email"
                                 required
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={e => setEmail(e.target.value)}
                                 placeholder="you@example.com"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                                className="w-full bg-surface border border-grey rounded-none px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-accent transition-colors"
                             />
                         </div>
 
                         {/* Password */}
                         <div>
-                            <label className="block text-xs font-medium text-white/50 mb-1.5 uppercase tracking-wider">
+                            <label className="block text-xs font-semibold text-ink mb-2 uppercase tracking-wider">
                                 Password
                             </label>
                             <input
@@ -91,17 +117,17 @@ export default function Auth() {
                                 required
                                 minLength={6}
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={e => setPassword(e.target.value)}
                                 placeholder="••••••••"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-colors"
+                                className="w-full bg-surface border border-grey rounded-none px-4 py-3 text-sm text-ink placeholder-muted focus:outline-none focus:border-accent transition-colors"
                             />
                         </div>
 
-                        {/* Error / Info message */}
+                        {/* Error / info */}
                         {error && (
-                            <p className={`text-xs px-3 py-2 rounded-lg ${error.isInfo
-                                    ? 'bg-violet-500/10 text-violet-300 border border-violet-500/20'
-                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            <p className={`text-xs px-3 py-2.5 ${error.isInfo
+                                    ? 'bg-sky text-navy border border-baby-blue'
+                                    : 'bg-red-50 text-red-600 border border-red-200'
                                 }`}>
                                 {error.message}
                             </p>
@@ -111,26 +137,26 @@ export default function Auth() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="w-full bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-medium rounded-xl px-4 py-3 transition-colors mt-2"
+                            className="w-full bg-accent hover:bg-accent-deep disabled:opacity-50 text-white font-semibold text-sm px-4 py-3.5 transition-colors mt-2"
                         >
                             {loading
                                 ? (isSignup ? 'Creating account…' : 'Signing in…')
-                                : (isSignup ? 'Create account' : 'Sign in')
+                                : (isSignup ? 'Join for free' : 'Sign in')
                             }
                         </button>
                     </form>
-                </div>
 
-                {/* Toggle mode */}
-                <p className="mt-6 text-center text-sm text-white/30">
-                    {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-                    <button
-                        onClick={() => { setMode(isSignup ? 'login' : 'signup'); setError(null) }}
-                        className="text-violet-400 hover:text-violet-300 transition-colors font-medium"
-                    >
-                        {isSignup ? 'Sign in' : 'Sign up'}
-                    </button>
-                </p>
+                    {/* Toggle */}
+                    <p className="mt-6 text-sm text-muted">
+                        {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+                        <button
+                            onClick={() => { setMode(isSignup ? 'login' : 'signup'); setError(null) }}
+                            className="text-accent font-semibold hover:text-accent-deep transition-colors"
+                        >
+                            {isSignup ? 'Log in' : 'Sign up'}
+                        </button>
+                    </p>
+                </div>
             </div>
         </div>
     )

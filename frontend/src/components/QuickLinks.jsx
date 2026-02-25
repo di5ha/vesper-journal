@@ -1,6 +1,3 @@
-/**
- * QuickLinks — three action cards: New Entry, Drift Timeline, Generate Report.
- */
 import { useNavigate } from 'react-router-dom'
 
 export default function QuickLinks({ onNewEntry, onGenerateReport, generating = false }) {
@@ -9,37 +6,25 @@ export default function QuickLinks({ onNewEntry, onGenerateReport, generating = 
     const links = [
         {
             label: 'New Entry',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-            ),
+            style: 'bg-accent hover:bg-accent-deep text-white',
             onClick: onNewEntry,
-            color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/15',
+            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />,
         },
         {
-            label: 'Drift Timeline',
-            icon: (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4" />
-                </svg>
-            ),
+            label: 'Drift',
+            style: 'bg-navy hover:bg-navy/85 text-white',
             onClick: () => navigate('/drift'),
-            color: 'text-violet-300 bg-violet-500/10 border-violet-500/15',
+            icon: <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4" />,
         },
         {
-            label: generating ? 'Generating…' : 'Weekly Report',
-            icon: generating ? (
-                <span className="animate-spin text-sm">◌</span>
-            ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            ),
+            label: generating ? 'Generating…' : 'Report',
+            style: generating
+                ? 'bg-off-blue text-muted cursor-not-allowed'
+                : 'border border-grey text-ink hover:border-accent hover:text-accent bg-surface',
             onClick: generating ? undefined : onGenerateReport,
-            color: generating
-                ? 'text-amber-400/50 bg-amber-500/5 border-amber-500/10 cursor-not-allowed'
-                : 'text-amber-400 bg-amber-500/10 border-amber-500/15',
+            icon: generating
+                ? <path strokeLinecap="round" strokeLinejoin="round" d="M4 12a8 8 0 018-8v8l4 4" />
+                : <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />,
         },
     ]
 
@@ -50,9 +35,11 @@ export default function QuickLinks({ onNewEntry, onGenerateReport, generating = 
                     key={l.label}
                     onClick={l.onClick}
                     disabled={!l.onClick}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[11px] font-medium transition-all hover:scale-[1.02] active:scale-[0.98] ${l.color}`}
+                    className={`flex items-center gap-1.5 px-3 py-2 text-[12px] font-semibold transition-all ${l.style}`}
                 >
-                    {l.icon}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        {l.icon}
+                    </svg>
                     {l.label}
                 </button>
             ))}

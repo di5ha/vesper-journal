@@ -1,1 +1,67 @@
 @import "tailwindcss";
+
+/* ── Google Fonts: Rethink Sans + Hedvig Letters Serif ───────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Rethink+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Hedvig+Letters+Serif:opsz@12..24&display=swap');
+
+/* ── Design tokens (Redo brand guidelines) ───────────────────────────────── */
+@theme {
+  --font-sans: 'Rethink Sans', system-ui, sans-serif;
+  --font-serif: 'Hedvig Letters Serif', Georgia, serif;
+
+  /* Primary palette */
+  --color-surface: #FFFFFF;
+  /* page / card background  */
+  --color-ink: #000000;
+  /* primary text            */
+  --color-accent: #FA9819;
+  /* orange — primary accent */
+  --color-accent-deep: #CD4900;
+  /* deep orange             */
+
+  /* Secondary palette */
+  --color-navy: #1E3D59;
+  /* dark — nav, badges      */
+  --color-caption: #48749E;
+  /* caption / subheading    */
+  --color-blue-tint: #B6C9CF;
+  /* muted blue-gray         */
+  --color-baby-blue: #C6EBF7;
+  /* light blue tint         */
+  --color-sky: #DEEEFE;
+  /* subtle section bg       */
+  --color-off-blue: #E8EBEF;
+  /* light section bg        */
+  --color-grey: #E5E5E5;
+  /* borders / dividers      */
+  --color-muted: #A3A3A3;
+  /* secondary / muted text  */
+}
+
+/* ── Global reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: 'Rethink Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Thin, neutral scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #E5E5E5;
+  border-radius: 99px;
+}

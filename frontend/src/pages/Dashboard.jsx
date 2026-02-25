@@ -11,17 +11,44 @@ import StreakCounter from '../components/StreakCounter'
 import MoodSparkline from '../components/MoodSparkline'
 import QuickLinks from '../components/QuickLinks'
 
-/**
- * Dashboard — writing shell with stats bar, editor, and insight panel.
- *
- *  ┌──────────────────────────────────────────────────────────┐
- *  │                      Top Nav                             │
- *  ├──────────┬───────────────────────────┬───────────────────┤
- *  │          │  Stats Bar (streak/spark) │                   │
- *  │ Sidebar  │  ────────────────────────  │  InsightPanel     │
- *  │  272px   │  JournalEditor (flex-1)   │   288px           │
- *  └──────────┴───────────────────────────┴───────────────────┘
- */
+// ---------------------------------------------------------------------------
+// Week calendar strip
+// ---------------------------------------------------------------------------
+const DAY_ABBR = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+
+function WeekCalendar() {
+    const today = new Date()
+    const dow = today.getDay()
+    const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(today)
+        d.setDate(today.getDate() - dow + i)
+        return d
+    })
+    return (
+        <div className="flex gap-1">
+            {days.map((d, i) => {
+                const isToday = d.toDateString() === today.toDateString()
+                return (
+                    <div key={i} className="flex flex-col items-center gap-1 w-8">
+                        <span className="text-[10px] text-muted font-medium">{DAY_ABBR[i]}</span>
+                        <span className={[
+                            'w-8 h-8 flex items-center justify-center text-xs font-semibold transition-all',
+                            isToday
+                                ? 'bg-accent text-white'
+                                : 'text-muted hover:bg-off-blue',
+                        ].join(' ')}>
+                            {d.getDate()}
+                        </span>
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
 export default function Dashboard() {
     const { user } = useAuth()
     const navigate = useNavigate()
@@ -29,18 +56,13 @@ export default function Dashboard() {
     const [active, setActive] = useState(null)
     const [refreshTick, setRefreshTick] = useState(0)
     const [lastSavedAt, setLastSavedAt] = useState(null)
-
-    // AI analysis — polls automatically when active.id changes
-    const { analysis, analyzing } = useAnalysis(active?.id ?? null)
-
-    // Dashboard stats
     const [stats, setStats] = useState(null)
     const [generating, setGenerating] = useState(false)
 
+    const { analysis, analyzing } = useAnalysis(active?.id ?? null)
+
     useEffect(() => {
-        getDashboardStats()
-            .then(setStats)
-            .catch(console.error)
+        getDashboardStats().then(setStats).catch(console.error)
     }, [refreshTick])
 
     async function handleSignOut() {
@@ -50,66 +72,48 @@ export default function Dashboard() {
 
     const handleSaved = useCallback((entry) => {
         setLastSavedAt(entry.updated_at)
-        setActive((prev) => {
-            if (!prev || prev.id !== entry.id) {
-                return { id: entry.id, content: entry.content }
-            }
-            return prev
-        })
-        setRefreshTick((t) => t + 1)
+        setActive(prev => (!prev || prev.id !== entry.id)
+            ? { id: entry.id, content: entry.content }
+            : prev)
+        setRefreshTick(t => t + 1)
     }, [])
 
-    function handleSelectEntry(entry) {
-        setActive({ id: entry.id, content: entry.content })
-    }
-
-    function handleNewEntry() {
-        setActive(null)
-    }
-
-    function handleEntryDeleted(deletedId) {
-        if (active?.id === deletedId) setActive(null)
-    }
+    function handleSelectEntry(entry) { setActive({ id: entry.id, content: entry.content }) }
+    function handleNewEntry() { setActive(null) }
+    function handleEntryDeleted(id) { if (active?.id === id) setActive(null) }
 
     async function handleGenerateReport() {
         setGenerating(true)
-        try {
-            await generateReport()
-            navigate('/reports')
-        } catch (err) {
-            alert(`Report generation failed: ${err.message}`)
-        } finally {
-            setGenerating(false)
-        }
+        try { await generateReport(); navigate('/reports') }
+        catch (err) { alert(`Report failed: ${err.message}`) }
+        finally { setGenerating(false) }
     }
 
-    const editorKey = active?.id ?? 'new'
+    const hour = new Date().getHours()
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+    const name = user?.email?.split('@')[0] ?? 'there'
 
     return (
-        <div className="min-h-screen bg-[#0f0f13] flex flex-col">
+        <div className="min-h-screen bg-surface flex flex-col">
             {/* ── Top nav ── */}
-            <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-                <span className="text-white font-semibold tracking-tight select-none">✦ vesper</span>
-                <div className="flex items-center gap-4">
+            <header className="flex items-center justify-between px-6 py-3.5 border-b border-grey bg-surface shrink-0">
+                <span className="font-bold text-ink text-xl tracking-tight">✦ vesper</span>
+                <div className="flex items-center gap-5">
                     {lastSavedAt && (
-                        <span className="text-xs text-white/25 hidden sm:block">
-                            Last saved{' '}
-                            {new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <span className="text-xs text-muted hidden sm:block">
+                            Saved {new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                     )}
-                    <span className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-violet-300 text-xs font-medium select-none">
+                    <span className="w-7 h-7 bg-navy text-white flex items-center justify-center text-xs font-bold select-none">
                         {user?.email?.[0]?.toUpperCase() ?? '?'}
                     </span>
-                    <button
-                        onClick={handleSignOut}
-                        className="text-xs text-white/30 hover:text-red-400 transition-colors"
-                    >
+                    <button onClick={handleSignOut} className="text-xs text-muted hover:text-accent transition-colors font-medium">
                         Sign out
                     </button>
                 </div>
             </header>
 
-            {/* ── Body: sidebar | main | insight panel ── */}
+            {/* ── Body ── */}
             <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar */}
                 <Sidebar
@@ -120,28 +124,47 @@ export default function Dashboard() {
                     refreshTick={refreshTick}
                 />
 
-                {/* Centre column: stats bar + editor */}
-                <main className="flex-1 overflow-y-auto min-w-0 flex flex-col">
-                    {/* Stats bar */}
-                    <div className="border-b border-white/5 px-6 py-4">
-                        <div className="max-w-2xl mx-auto flex flex-wrap items-center gap-3">
-                            <StreakCounter streak={stats?.current_streak ?? 0} />
-                            <div className="flex-1 min-w-[140px]">
-                                <MoodSparkline data={stats?.mood_sparkline ?? []} />
+                {/* Centre column */}
+                <main className="flex-1 overflow-y-auto min-w-0 flex flex-col bg-surface">
+                    {/* Section header — Redo numbered style */}
+                    <div className="border-b border-grey px-8 py-6">
+                        <div className="max-w-2xl mx-auto">
+                            {/* Greeting row */}
+                            <div className="flex items-start justify-between gap-4 mb-5 flex-wrap">
+                                <div>
+                                    <span className="text-accent font-bold text-sm">01</span>
+                                    <h1 className="text-2xl font-bold text-ink mt-0.5">
+                                        {greeting}, {name}
+                                    </h1>
+                                    <p className="text-muted text-sm mt-1">
+                                        {new Date().toLocaleDateString('en-US', {
+                                            weekday: 'long', month: 'long', day: 'numeric'
+                                        })}
+                                    </p>
+                                </div>
+                                <WeekCalendar />
                             </div>
-                            <QuickLinks
-                                onNewEntry={handleNewEntry}
-                                onGenerateReport={handleGenerateReport}
-                                generating={generating}
-                            />
+
+                            {/* Stats strip */}
+                            <div className="flex flex-wrap items-center gap-3 pt-5 border-t border-grey">
+                                <StreakCounter streak={stats?.current_streak ?? 0} />
+                                <div className="flex-1 min-w-[140px]">
+                                    <MoodSparkline data={stats?.mood_sparkline ?? []} />
+                                </div>
+                                <QuickLinks
+                                    onNewEntry={handleNewEntry}
+                                    onGenerateReport={handleGenerateReport}
+                                    generating={generating}
+                                />
+                            </div>
                         </div>
                     </div>
 
-                    {/* Editor — main writing area */}
+                    {/* Editor */}
                     <div className="flex-1">
                         <div className="max-w-2xl mx-auto h-full">
                             <JournalEditor
-                                key={editorKey}
+                                key={active?.id ?? 'new'}
                                 initialEntryId={active?.id ?? null}
                                 initialContent={active?.content ?? ''}
                                 onSaved={handleSaved}
@@ -150,7 +173,7 @@ export default function Dashboard() {
                     </div>
                 </main>
 
-                {/* Insight Panel — right column, hidden on small screens */}
+                {/* Insight panel */}
                 <div className="hidden lg:block">
                     <InsightPanel
                         entryId={active?.id ?? null}
