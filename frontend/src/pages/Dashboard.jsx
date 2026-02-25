@@ -4,8 +4,9 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import {
     getEntries, getEntry, createEntry, updateEntry,
-    deleteEntry, searchEntries, getAnalysis, getDashboardStats,
+    deleteEntry, searchEntries, getAnalysis, getDashboardStats, generateReport,
 } from '../lib/api'
+
 import {
     BookOpen, LogOut, Plus, Search, BookMarked,
     Loader2, Trash2, MoreHorizontal, BarChart2, FileText,
@@ -182,7 +183,8 @@ function DashboardStatsPanel({ entryCount }) {
                             )}
                             {stats.latest_analysis.observation && (
                                 <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.6, margin: 0 }}>
-                                    "{stats.latest_analysis.observation}"
+                                    {stats.latest_analysis.observation}
+
                                 </p>
                             )}
                         </div>
@@ -287,7 +289,8 @@ function EntryInsightPanel({ entryId }) {
                     {observation && (
                         <div style={{ padding: '0.625rem 0.875rem' }}>
                             <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.375rem' }}>Observation</p>
-                            <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.65, margin: 0 }}>"{observation}"</p>
+                            <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.65, margin: 0 }}>{observation}</p>
+
                         </div>
                     )}
                 </div>
@@ -297,7 +300,88 @@ function EntryInsightPanel({ entryId }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mood Picker
+// Persistent stats bar — always visible above the editor
+// ─────────────────────────────────────────────────────────────────────────────
+function PersistentStatsBar({ entryCount }) {
+    const navigate = useNavigate()
+    const [stats, setStats] = useState(null)
+    const [generating, setGenerating] = useState(false)
+
+    useEffect(() => {
+        getDashboardStats().then(setStats).catch(console.error)
+    }, [])
+
+    const sparkline = stats?.mood_sparkline ?? []
+    const streak = stats?.current_streak ?? 0
+
+    async function handleGenerate() {
+        setGenerating(true)
+        try { await generateReport(); navigate('/reports') }
+        catch (e) { alert(e.message) }
+        finally { setGenerating(false) }
+    }
+
+    return (
+        <div style={{
+            display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0,
+            padding: '0.5rem 1.5rem', borderBottom: '1px solid rgba(200,195,185,0.4)',
+            background: 'rgba(253,251,248,0.55)',
+            backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            minHeight: '48px',
+        }}>
+            {/* Streak */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                <span style={{ fontSize: '1rem' }}>🔥</span>
+                <div>
+                    <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{streak}</p>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>day streak</p>
+                </div>
+            </div>
+
+            <div style={{ width: '1px', height: '28px', background: 'rgba(200,195,185,0.45)', flexShrink: 0 }} />
+
+            {/* Entry count */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.9375rem' }}>📔</span>
+                <div>
+                    <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{entryCount}</p>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>entries</p>
+                </div>
+            </div>
+
+            <div style={{ width: '1px', height: '28px', background: 'rgba(200,195,185,0.45)', flexShrink: 0 }} />
+
+            {/* 7-day sparkline */}
+            {sparkline.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>7-day mood</p>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '22px' }}>
+                        {sparkline.map((d, i) => {
+                            const h = d.mood ? Math.max(Math.round(((d.mood - 1) / 9) * 20), 3) : 3
+                            const hue = d.mood ? Math.round(((d.mood - 1) / 9) * 140) : 0
+                            const c = d.mood ? `hsl(${hue},72%,48%)` : 'var(--color-muted)'
+                            return <div key={i} title={d.mood ? `${d.date}: ${d.mood.toFixed(1)}` : 'No entry'}
+                                style={{ width: '12px', height: `${h}px`, background: c, borderRadius: '2px 2px 0 0', opacity: d.mood ? 1 : 0.25, transition: 'height 0.3s' }} />
+                        })}
+                    </div>
+                </div>
+            )}
+
+            <div style={{ flex: 1 }} />
+
+            {/* Generate report */}
+            <button onClick={handleGenerate} disabled={generating}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0, padding: '0.375rem 0.875rem', borderRadius: '9999px', border: '1px solid rgba(200,195,185,0.6)', background: 'rgba(253,251,248,0.7)', cursor: generating ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted-fg)', transition: 'all 0.15s' }}
+                onMouseEnter={e => { if (!generating) { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent' } }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.7)'; e.currentTarget.style.color = 'var(--color-muted-fg)'; e.currentTarget.style.borderColor = 'rgba(200,195,185,0.6)' }}>
+                <FileText size={12} />
+                {generating ? 'Generating…' : 'Generate report'}
+            </button>
+        </div>
+    )
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 function MoodPicker({ mood, onChange }) {
     const [open, setOpen] = useState(false)
@@ -679,10 +763,15 @@ export default function Dashboard() {
             </aside>
 
             {/* ── Center ── */}
-            <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0, background: 'rgba(250,248,244,0.60)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
-                {!selectedId && !isNew && <WelcomeCenter onNewEntry={newEntry} />}
-                {isNew && <InlineEditor key="new" isNew onSaved={handleSaved} onDeleted={handleDeleted} />}
-                {selectedId && <InlineEditor key={selectedId} entryId={selectedId} isNew={false} onSaved={handleSaved} onDeleted={handleDeleted} />}
+            <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'rgba(250,248,244,0.60)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+                {/* Persistent stats bar — always on screen */}
+                <PersistentStatsBar entryCount={entries.length} />
+                {/* Content area */}
+                <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+                    {!selectedId && !isNew && <WelcomeCenter onNewEntry={newEntry} />}
+                    {isNew && <InlineEditor key="new" isNew onSaved={handleSaved} onDeleted={handleDeleted} />}
+                    {selectedId && <InlineEditor key={selectedId} entryId={selectedId} isNew={false} onSaved={handleSaved} onDeleted={handleDeleted} />}
+                </div>
             </div>
 
             {/* ── Right panel ── */}
@@ -691,4 +780,6 @@ export default function Dashboard() {
         </div>
     )
 }
+
+
 

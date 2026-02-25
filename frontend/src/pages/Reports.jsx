@@ -33,14 +33,24 @@ export default function Reports() {
     }
 
     return (
-        <div style={{ background: 'var(--color-background)', minHeight: '100svh' }}>
+        <div style={{ position: 'relative', background: 'oklch(0.975 0.005 75)', minHeight: '100svh', overflow: 'hidden' }}>
+
+            {/* Blob background */}
+            <div className="blob-scene">
+                <div className="blob blob-teal" style={{ width: '600px', height: '600px', top: '-15%', left: '-8%' }} />
+                <div className="blob blob-sage" style={{ width: '650px', height: '650px', bottom: '-10%', right: '-12%' }} />
+                <div className="blob blob-amber" style={{ width: '380px', height: '380px', bottom: '10%', left: '35%' }} />
+                <div className="blob blob-blush" style={{ width: '450px', height: '450px', top: '-5%', right: '20%' }} />
+            </div>
+
             {/* ── Nav ── */}
             <header style={{
                 position: 'sticky', top: 0, zIndex: 20,
-                background: 'oklch(0.975 0.005 75 / 0.92)',
-                backdropFilter: 'blur(12px)',
-                borderBottom: '1px solid var(--color-border)',
+                background: 'rgba(253,251,248,0.80)',
+                backdropFilter: 'blur(16px)',
+                borderBottom: '1px solid rgba(200,195,185,0.5)',
             }}>
+
                 <div style={{ maxWidth: '32rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
                         <BookOpen size={20} />
