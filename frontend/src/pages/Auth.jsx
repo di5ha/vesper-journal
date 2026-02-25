@@ -10,8 +10,18 @@ export default function Auth() {
 
     return (
         <div className="flex min-h-screen w-full items-center justify-center p-6"
-            style={{ background: 'var(--color-background)' }}>
-            <div className="w-full max-w-sm">
+            style={{ background: 'var(--color-background)', position: 'relative' }}>
+
+            {/* Blob background */}
+            <div className="blob-scene">
+                <div className="blob blob-teal" style={{ width: '600px', height: '600px', top: '-20%', left: '-15%' }} />
+                <div className="blob blob-sage" style={{ width: '550px', height: '550px', bottom: '-15%', right: '-10%' }} />
+                <div className="blob blob-amber" style={{ width: '380px', height: '380px', bottom: '5%', left: '30%' }} />
+                <div className="blob blob-blush" style={{ width: '450px', height: '450px', top: '-5%', right: '25%' }} />
+                <div className="blob blob-deep" style={{ width: '700px', height: '700px', top: '30%', left: '45%' }} />
+            </div>
+
+            <div className="w-full max-w-sm" style={{ position: 'relative', zIndex: 1 }}>
                 {view === 'landing' && <LandingCard onLogin={() => setView('login')} onSignup={() => setView('signup')} />}
                 {view === 'login' && <LoginCard onSignup={() => setView('signup')} onBack={() => setView('landing')} />}
                 {view === 'signup' && <SignupCard onLogin={() => setView('login')} onBack={() => setView('landing')} />}

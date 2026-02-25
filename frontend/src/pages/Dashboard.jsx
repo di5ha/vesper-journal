@@ -564,6 +564,15 @@ export default function Dashboard() {
     return (
         <div style={{ display: 'flex', height: '100svh', background: 'var(--color-background)', overflow: 'hidden' }}>
 
+            {/* ── Blob background ── */}
+            <div className="blob-scene">
+                <div className="blob blob-teal" style={{ width: '650px', height: '650px', top: '-15%', left: '-10%' }} />
+                <div className="blob blob-sage" style={{ width: '700px', height: '700px', top: '30%', right: '-15%' }} />
+                <div className="blob blob-amber" style={{ width: '420px', height: '420px', bottom: '-5%', left: '25%' }} />
+                <div className="blob blob-blush" style={{ width: '500px', height: '500px', top: '-10%', right: '20%' }} />
+                <div className="blob blob-deep" style={{ width: '800px', height: '800px', bottom: '-20%', left: '40%' }} />
+            </div>
+
             {/* ── Left sidebar ── */}
             <aside style={{
                 width: '256px', flexShrink: 0, display: 'flex', flexDirection: 'column',
