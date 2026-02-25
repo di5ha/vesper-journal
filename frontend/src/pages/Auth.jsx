@@ -1,88 +1,217 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Loader2 } from 'lucide-react'
+import { BookOpen, Loader2, PenLine, Lock, BarChart2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 // ─── Auth page: 3 views — landing / login / signup ───────────────────────────
-
 export default function Auth() {
     const [view, setView] = useState('landing') // 'landing' | 'login' | 'signup'
 
     return (
-        <div className="flex min-h-screen w-full items-center justify-center p-6"
-            style={{ background: 'var(--color-background)', position: 'relative' }}>
+        <div style={{ position: 'relative', minHeight: '100svh', background: 'oklch(0.975 0.005 75)', overflow: 'hidden' }}>
 
             {/* Blob background */}
             <div className="blob-scene">
-                <div className="blob blob-teal" style={{ width: '600px', height: '600px', top: '-20%', left: '-15%' }} />
-                <div className="blob blob-sage" style={{ width: '550px', height: '550px', bottom: '-15%', right: '-10%' }} />
+                <div className="blob blob-teal" style={{ width: '620px', height: '620px', top: '-20%', left: '-12%' }} />
+                <div className="blob blob-sage" style={{ width: '560px', height: '560px', bottom: '-12%', right: '-8%' }} />
                 <div className="blob blob-amber" style={{ width: '380px', height: '380px', bottom: '5%', left: '30%' }} />
-                <div className="blob blob-blush" style={{ width: '450px', height: '450px', top: '-5%', right: '25%' }} />
-                <div className="blob blob-deep" style={{ width: '700px', height: '700px', top: '30%', left: '45%' }} />
+                <div className="blob blob-blush" style={{ width: '460px', height: '460px', top: '-5%', right: '22%' }} />
+                <div className="blob blob-deep" style={{ width: '700px', height: '700px', top: '30%', left: '42%' }} />
             </div>
 
-            <div className="w-full max-w-sm" style={{ position: 'relative', zIndex: 1 }}>
-                {view === 'landing' && <LandingCard onLogin={() => setView('login')} onSignup={() => setView('signup')} />}
-                {view === 'login' && <LoginCard onSignup={() => setView('signup')} onBack={() => setView('landing')} />}
-                {view === 'signup' && <SignupCard onLogin={() => setView('login')} onBack={() => setView('landing')} />}
-            </div>
+            {/* ── Nav ─────────────────────────────────────────────────────────── */}
+            <header style={{
+                position: 'sticky', top: 0, zIndex: 30,
+                background: 'rgba(253,251,248,0.80)',
+                backdropFilter: 'blur(20px)',
+                borderBottom: '1px solid rgba(200,195,185,0.45)',
+            }}>
+                <div style={{ maxWidth: '64rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', height: '56px' }}>
+                    {/* Logo */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)' }}>
+                        <BookOpen size={20} />
+                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-foreground)' }}>vesper</span>
+                    </div>
+
+                    {/* Nav actions */}
+                    {view === 'landing' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <button onClick={() => setView('login')}
+                                style={{ background: 'none', border: 'none', padding: '0.4rem 0.875rem', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: 500, color: 'var(--color-foreground)', borderRadius: '0.5rem', transition: 'background 0.15s' }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-muted)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                                Sign in
+                            </button>
+                            <button onClick={() => setView('signup')} className="btn-primary"
+                                style={{ padding: '0.4rem 1.125rem', borderRadius: '9999px', fontSize: '0.9375rem' }}>
+                                Get started
+                            </button>
+                        </div>
+                    )}
+                    {view !== 'landing' && (
+                        <button onClick={() => setView('landing')}
+                            style={{ background: 'none', border: 'none', padding: '0.4rem 0.875rem', cursor: 'pointer', fontSize: '0.9375rem', fontWeight: 500, color: 'var(--color-muted-fg)', borderRadius: '0.5rem' }}>
+                            ← Back
+                        </button>
+                    )}
+                </div>
+            </header>
+
+            {/* ── Main content ─────────────────────────────────────────────────── */}
+            <main style={{ position: 'relative', zIndex: 1, maxWidth: '64rem', margin: '0 auto', padding: '0 1.5rem 6rem' }}>
+
+                {view === 'landing' && <LandingContent onLogin={() => setView('login')} onSignup={() => setView('signup')} />}
+
+                {view !== 'landing' && (
+                    <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '4rem' }}>
+                        <div style={{ width: '100%', maxWidth: '22rem' }}>
+                            {view === 'login' && <LoginCard onSignup={() => setView('signup')} />}
+                            {view === 'signup' && <SignupCard onLogin={() => setView('login')} />}
+                        </div>
+                    </div>
+                )}
+            </main>
+
+            {/* ── Footer ───────────────────────────────────────────────────────── */}
+            {view === 'landing' && (
+                <footer style={{ position: 'relative', zIndex: 1, textAlign: 'center', padding: '1.25rem', borderTop: '1px solid rgba(200,195,185,0.4)', background: 'rgba(253,251,248,0.55)', backdropFilter: 'blur(12px)' }}>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', margin: 0 }}>
+                        vesper — your personal journaling space
+                    </p>
+                </footer>
+            )}
         </div>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Landing Card (matches the V0 screenshot exactly)
+// Landing content — Inkwell-inspired full-page layout
 // ─────────────────────────────────────────────────────────────────────────────
-function LandingCard({ onLogin, onSignup }) {
-    return (
-        <div style={{ borderRadius: '1.5rem', overflow: 'hidden', background: 'rgba(253,251,248,0.80)', backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)', boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
-            {/* Illustration */}
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 2rem 0' }}>
-                <div style={{ width: '224px', height: '224px', overflow: 'hidden' }}>
-                    <img
-                        src="/journal-hero.png"
-                        alt="Woman journaling at desk"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                    />
-                </div>
-            </div>
+function LandingContent({ onLogin, onSignup }) {
+    const features = [
+        {
+            Icon: PenLine,
+            title: 'Write freely',
+            desc: 'A distraction-free writing experience designed for reflection and mindfulness.',
+        },
+        {
+            Icon: Lock,
+            title: 'Completely private',
+            desc: 'Your entries are encrypted and accessible only to you. No one else can read them.',
+        },
+        {
+            Icon: BarChart2,
+            title: 'Track your moods',
+            desc: 'Tag entries with moods to discover patterns and understand yourself better.',
+        },
+    ]
 
-            {/* Text + Actions */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 2rem 2.5rem', textAlign: 'center' }}>
-                <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.3, color: 'var(--color-foreground)', margin: '0 0 2rem' }}>
-                    Start keeping track of your{' '}
-                    <span style={{ position: 'relative', display: 'inline-block' }}>
-                        <span style={{ position: 'relative', zIndex: 1 }}>life</span>
-                        <span style={{
-                            position: 'absolute', inset: '-1px -6px 0',
-                            bottom: 0, height: '40%', zIndex: 0,
-                            background: 'oklch(0.50 0.10 170 / 0.18)',
-                            borderRadius: '3px'
-                        }} />
-                    </span>
+    return (
+        <>
+            {/* ── Hero ─────────────────────────────────────────────────────── */}
+            <section style={{ textAlign: 'center', padding: '4rem 1rem 3rem' }}>
+                <h1 style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 'clamp(2.5rem, 6vw, 4rem)',
+                    fontWeight: 700,
+                    lineHeight: 1.15,
+                    color: 'var(--color-foreground)',
+                    margin: '0 auto 1rem',
+                    maxWidth: '28rem',
+                    letterSpacing: '-0.02em',
+                }}>
+                    A quiet space for<br />your thoughts
                 </h1>
 
-                <button className="btn-primary" style={{ width: '100%', marginBottom: '1.25rem', fontSize: '1rem' }}
-                    onClick={onSignup}>
-                    Join for free
-                </button>
-
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
-                    Already have an account?{' '}
-                    <button onClick={onLogin}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 500, color: 'var(--color-foreground)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-                        Log in
-                    </button>
+                <p style={{
+                    fontSize: '1.0625rem',
+                    color: 'var(--color-muted-fg)',
+                    lineHeight: 1.7,
+                    maxWidth: '26rem',
+                    margin: '0 auto 2.25rem',
+                }}>
+                    Capture your days, reflect on your journey, and find clarity through writing.
+                    Your personal journal, always private, always yours.
                 </p>
-            </div>
-        </div>
+
+                {/* CTA buttons */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
+                    <button onClick={onSignup} className="btn-primary"
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', fontSize: '1rem', fontWeight: 600 }}>
+                        Start journaling
+                    </button>
+                    <button onClick={onLogin}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', border: '1.5px solid rgba(180,175,165,0.7)', background: 'rgba(253,251,248,0.75)', backdropFilter: 'blur(12px)', cursor: 'pointer', fontSize: '1rem', fontWeight: 600, color: 'var(--color-foreground)', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.95)'; e.currentTarget.style.borderColor = 'var(--color-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.75)'; e.currentTarget.style.borderColor = 'rgba(180,175,165,0.7)' }}>
+                        Sign in
+                    </button>
+                </div>
+
+                {/* Illustration */}
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div style={{
+                        width: '260px', height: '260px',
+                        borderRadius: '50%',
+                        overflow: 'hidden',
+                        background: 'rgba(253,251,248,0.70)',
+                        backdropFilter: 'blur(16px)',
+                        boxShadow: '0 12px 60px rgba(0,0,0,0.10), 0 0 0 1px rgba(200,195,185,0.35)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                        <img
+                            src="/journal-hero.png"
+                            alt="Woman journaling at desk"
+                            style={{ width: '90%', height: '90%', objectFit: 'contain' }}
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Feature cards ────────────────────────────────────────────── */}
+            <section style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1.25rem',
+                padding: '0.5rem 0 2rem',
+            }}>
+                {features.map(({ Icon, title, desc }) => (
+                    <div key={title} style={{
+                        borderRadius: '1.25rem',
+                        padding: '2rem 1.5rem',
+                        background: 'rgba(253,251,248,0.72)',
+                        backdropFilter: 'blur(20px) saturate(1.3)',
+                        WebkitBackdropFilter: 'blur(20px) saturate(1.3)',
+                        border: '1px solid rgba(200,195,185,0.45)',
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+                        textAlign: 'center',
+                        transition: 'box-shadow 0.2s, transform 0.2s',
+                        cursor: 'default',
+                    }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 40px rgba(0,0,0,0.10)'; e.currentTarget.style.transform = 'translateY(-3px)' }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 24px rgba(0,0,0,0.06)'; e.currentTarget.style.transform = 'none' }}>
+                        <div style={{
+                            width: '2.75rem', height: '2.75rem',
+                            background: 'oklch(0.50 0.10 170 / 0.10)',
+                            borderRadius: '0.875rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 1.25rem',
+                        }}>
+                            <Icon size={20} color="var(--color-primary)" />
+                        </div>
+                        <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.0625rem', fontWeight: 700, margin: '0 0 0.625rem', color: 'var(--color-foreground)' }}>{title}</h3>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', lineHeight: 1.65, margin: 0 }}>{desc}</p>
+                    </div>
+                ))}
+            </section>
+        </>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Login Card
 // ─────────────────────────────────────────────────────────────────────────────
-function LoginCard({ onSignup, onBack }) {
+function LoginCard({ onSignup }) {
     const navigate = useNavigate()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -104,18 +233,15 @@ function LoginCard({ onSignup, onBack }) {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
             {/* Brand */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
-                    <BookOpen size={32} />
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>Welcome back to your journal</p>
+            <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.375rem', fontWeight: 700, margin: '0 0 0.25rem', color: 'var(--color-foreground)' }}>Welcome back</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>Sign in to your journal</p>
             </div>
 
             {/* Form card */}
-            <div className="card" style={{ padding: '1.5rem', background: 'rgba(253,251,248,0.82)', backdropFilter: 'blur(22px) saturate(1.3)', WebkitBackdropFilter: 'blur(22px) saturate(1.3)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
+            <div style={{ borderRadius: '1.25rem', padding: '1.75rem', background: 'rgba(253,251,248,0.88)', backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)', border: '1px solid rgba(200,195,185,0.45)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div>
                         <label className="label" htmlFor="email">Email</label>
@@ -129,20 +255,18 @@ function LoginCard({ onSignup, onBack }) {
                     </div>
                     {error && <p style={{ fontSize: '0.875rem', color: 'var(--color-destructive)', margin: 0 }}>{error}</p>}
                     <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-                        {loading ? <><Loader2 size={16} className="animate-spin" /> Signing in…</> : 'Sign in'}
+                        {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Signing in…</> : 'Sign in'}
                     </button>
 
                     <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
                         Don't have an account?{' '}
                         <button type="button" onClick={onSignup}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 500, color: 'var(--color-primary)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 600, color: 'var(--color-primary)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                             Sign up
                         </button>
                     </p>
                 </form>
             </div>
-
-            <button onClick={onBack} className="btn-ghost" style={{ margin: '0 auto' }}>← Back</button>
         </div>
     )
 }
@@ -150,8 +274,7 @@ function LoginCard({ onSignup, onBack }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sign-up Card
 // ─────────────────────────────────────────────────────────────────────────────
-function SignupCard({ onLogin, onBack }) {
-    const navigate = useNavigate()
+function SignupCard({ onLogin }) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [confirm, setConfirm] = useState('')
@@ -179,9 +302,9 @@ function SignupCard({ onLogin, onBack }) {
 
     if (done) {
         return (
-            <div className="card" style={{ padding: '2rem', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+            <div style={{ borderRadius: '1.25rem', padding: '2.5rem 2rem', background: 'rgba(253,251,248,0.88)', backdropFilter: 'blur(24px) saturate(1.4)', border: '1px solid rgba(200,195,185,0.45)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
                 <div style={{ width: '3rem', height: '3rem', borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <BookOpen size={24} color='var(--color-primary)' />
+                    <BookOpen size={24} color="var(--color-primary)" />
                 </div>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Check your email</h2>
                 <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', lineHeight: 1.6, margin: 0 }}>
@@ -193,18 +316,15 @@ function SignupCard({ onLogin, onBack }) {
     }
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
             {/* Brand */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
-                    <BookOpen size={32} />
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
-                </div>
-                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>Create your personal journal</p>
+            <div style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: 'var(--font-serif)', fontSize: '1.375rem', fontWeight: 700, margin: '0 0 0.25rem', color: 'var(--color-foreground)' }}>Create account</p>
+                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>Start your journaling journey</p>
             </div>
 
             {/* Form card */}
-            <div className="card" style={{ padding: '1.5rem', background: 'rgba(253,251,248,0.82)', backdropFilter: 'blur(22px) saturate(1.3)', WebkitBackdropFilter: 'blur(22px) saturate(1.3)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
+            <div style={{ borderRadius: '1.25rem', padding: '1.75rem', background: 'rgba(253,251,248,0.88)', backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)', border: '1px solid rgba(200,195,185,0.45)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div>
                         <label className="label" htmlFor="su-email">Email</label>
@@ -223,20 +343,18 @@ function SignupCard({ onLogin, onBack }) {
                     </div>
                     {error && <p style={{ fontSize: '0.875rem', color: 'var(--color-destructive)', margin: 0 }}>{error}</p>}
                     <button type="submit" className="btn-primary" style={{ width: '100%' }} disabled={loading}>
-                        {loading ? <><Loader2 size={16} className="animate-spin" /> Creating…</> : 'Create account'}
+                        {loading ? <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Creating…</> : 'Create account'}
                     </button>
 
                     <p style={{ textAlign: 'center', fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
                         Already have an account?{' '}
                         <button type="button" onClick={onLogin}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 500, color: 'var(--color-primary)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 'inherit', fontWeight: 600, color: 'var(--color-primary)', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
                             Sign in
                         </button>
                     </p>
                 </form>
             </div>
-
-            <button onClick={onBack} className="btn-ghost" style={{ margin: '0 auto' }}>← Back</button>
         </div>
     )
 }
