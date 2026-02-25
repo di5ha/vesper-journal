@@ -323,58 +323,58 @@ function PersistentStatsBar({ entryCount }) {
 
     return (
         <div style={{
-            display: 'flex', alignItems: 'center', gap: '1rem', flexShrink: 0,
-            padding: '0.5rem 1.5rem', borderBottom: '1px solid rgba(200,195,185,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexShrink: 0,
+            padding: '0.75rem 1.5rem', borderBottom: '1px solid rgba(200,195,185,0.4)',
             background: 'rgba(253,251,248,0.55)',
             backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            minHeight: '48px',
+            minHeight: '60px',
         }}>
             {/* Streak */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-                <span style={{ fontSize: '1rem' }}>🔥</span>
-                <div>
-                    <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{streak}</p>
-                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>day streak</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                <span style={{ fontSize: '1.25rem' }}>🔥</span>
+                <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '1.375rem', fontWeight: 700, margin: 0, color: streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{streak}</p>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>day streak</p>
                 </div>
             </div>
 
-            <div style={{ width: '1px', height: '28px', background: 'rgba(200,195,185,0.45)', flexShrink: 0 }} />
+            <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
             {/* Entry count */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.9375rem' }}>📔</span>
-                <div>
-                    <p style={{ fontSize: '1rem', fontWeight: 700, margin: 0, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{entryCount}</p>
-                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>entries</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                <span style={{ fontSize: '1.125rem' }}>📔</span>
+                <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '1.375rem', fontWeight: 700, margin: 0, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{entryCount}</p>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>entries</p>
                 </div>
             </div>
 
-            <div style={{ width: '1px', height: '28px', background: 'rgba(200,195,185,0.45)', flexShrink: 0 }} />
+            <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
             {/* 7-day sparkline */}
             {sparkline.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flexShrink: 0 }}>
-                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>7-day mood</p>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '22px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>7-day mood</p>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '28px' }}>
                         {sparkline.map((d, i) => {
-                            const h = d.mood ? Math.max(Math.round(((d.mood - 1) / 9) * 20), 3) : 3
+                            const h = d.mood ? Math.max(Math.round(((d.mood - 1) / 9) * 26), 4) : 4
                             const hue = d.mood ? Math.round(((d.mood - 1) / 9) * 140) : 0
                             const c = d.mood ? `hsl(${hue},72%,48%)` : 'var(--color-muted)'
                             return <div key={i} title={d.mood ? `${d.date}: ${d.mood.toFixed(1)}` : 'No entry'}
-                                style={{ width: '12px', height: `${h}px`, background: c, borderRadius: '2px 2px 0 0', opacity: d.mood ? 1 : 0.25, transition: 'height 0.3s' }} />
+                                style={{ width: '14px', height: `${h}px`, background: c, borderRadius: '3px 3px 0 0', opacity: d.mood ? 1 : 0.2, transition: 'height 0.3s' }} />
                         })}
                     </div>
                 </div>
             )}
 
-            <div style={{ flex: 1 }} />
+            <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
             {/* Generate report */}
             <button onClick={handleGenerate} disabled={generating}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0, padding: '0.375rem 0.875rem', borderRadius: '9999px', border: '1px solid rgba(200,195,185,0.6)', background: 'rgba(253,251,248,0.7)', cursor: generating ? 'not-allowed' : 'pointer', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted-fg)', transition: 'all 0.15s' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0, padding: '0.4375rem 1rem', borderRadius: '9999px', border: '1px solid rgba(200,195,185,0.6)', background: 'rgba(253,251,248,0.7)', cursor: generating ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-muted-fg)', transition: 'all 0.15s' }}
                 onMouseEnter={e => { if (!generating) { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent' } }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.7)'; e.currentTarget.style.color = 'var(--color-muted-fg)'; e.currentTarget.style.borderColor = 'rgba(200,195,185,0.6)' }}>
-                <FileText size={12} />
+                <FileText size={13} />
                 {generating ? 'Generating…' : 'Generate report'}
             </button>
         </div>
@@ -746,17 +746,33 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {/* Bottom nav */}
-                <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.375rem' }}>
+                {/* Bottom nav — prominent card buttons */}
+                <div style={{ borderTop: '1px solid rgba(200,195,185,0.5)', padding: '0.625rem' }}>
                     {[
-                        { label: 'Drift', path: '/drift', Icon: BarChart2 },
-                        { label: 'Reports', path: '/reports', Icon: FileText },
-                    ].map(({ label, path, Icon }) => (
+                        { label: 'Drift', sub: 'Mood timeline', path: '/drift', Icon: BarChart2 },
+                        { label: 'Reports', sub: 'AI weekly digest', path: '/reports', Icon: FileText },
+                    ].map(({ label, sub, path, Icon }) => (
                         <button key={path} onClick={() => navigate(path)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.4rem 0.5rem', borderRadius: '0.4rem', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-muted-fg)', transition: 'background 0.1s, color 0.1s' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-muted)'; e.currentTarget.style.color = 'var(--color-foreground)' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-muted-fg)' }}>
-                            <Icon size={14} />{label}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', width: '100%', padding: '0.625rem 0.625rem', borderRadius: '0.625rem', border: 'none', background: 'transparent', cursor: 'pointer', marginBottom: '0.25rem', transition: 'background 0.15s', textAlign: 'left' }}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.background = 'oklch(0.50 0.10 170 / 0.10)'
+                                e.currentTarget.querySelector('.nav-icon').style.background = 'var(--color-primary)'
+                                e.currentTarget.querySelector('.nav-icon').style.color = '#fff'
+                                e.currentTarget.querySelector('.nav-label').style.color = 'var(--color-primary)'
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.background = 'transparent'
+                                e.currentTarget.querySelector('.nav-icon').style.background = 'oklch(0.50 0.10 170 / 0.10)'
+                                e.currentTarget.querySelector('.nav-icon').style.color = 'var(--color-primary)'
+                                e.currentTarget.querySelector('.nav-label').style.color = 'var(--color-foreground)'
+                            }}>
+                            <span className="nav-icon" style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'oklch(0.50 0.10 170 / 0.10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
+                                <Icon size={15} />
+                            </span>
+                            <div>
+                                <p className="nav-label" style={{ fontSize: '0.8125rem', fontWeight: 600, margin: 0, color: 'var(--color-foreground)', lineHeight: 1.2, transition: 'color 0.15s' }}>{label}</p>
+                                <p style={{ fontSize: '0.6875rem', margin: 0, color: 'var(--color-muted-fg)', lineHeight: 1.2 }}>{sub}</p>
+                            </div>
                         </button>
                     ))}
                 </div>

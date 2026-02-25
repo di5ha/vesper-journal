@@ -51,31 +51,31 @@ function CustomTooltip({ active, payload }) {
 // ── Chart ─────────────────────────────────────────────────────────────────────
 function MoodChart({ data }) {
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={data} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={480}>
+            <AreaChart data={data} margin={{ top: 16, right: 24, left: -8, bottom: 8 }}>
                 <defs>
                     <linearGradient id="moodGradV0" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.20} />
-                        <stop offset="95%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.01} />
+                        <stop offset="5%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.02} />
                     </linearGradient>
                 </defs>
                 <CartesianGrid stroke="var(--color-border)" vertical={false} />
                 <XAxis dataKey="created_at" tickFormatter={fmtDate}
-                    tick={{ fontSize: 10, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
-                    axisLine={false} tickLine={false} minTickGap={50} />
+                    tick={{ fontSize: 11, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
+                    axisLine={false} tickLine={false} minTickGap={60} />
                 <YAxis domain={[1, 10]} ticks={[1, 3, 5, 7, 10]}
-                    tick={{ fontSize: 10, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
+                    tick={{ fontSize: 11, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
                     axisLine={false} tickLine={false} />
                 <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1.5 }} />
                 <Area type="monotone" dataKey="mood_score"
-                    stroke="var(--color-primary)" strokeWidth={2.5}
+                    stroke="var(--color-primary)" strokeWidth={3}
                     fill="url(#moodGradV0)"
                     dot={({ cx, cy, payload, key }) => (
-                        <circle key={key} cx={cx} cy={cy} r={4}
+                        <circle key={key} cx={cx} cy={cy} r={5}
                             fill={moodColor(payload.mood_score)}
-                            stroke="var(--color-card)" strokeWidth={2} />
+                            stroke="var(--color-card)" strokeWidth={2.5} />
                     )}
-                    activeDot={{ r: 6, stroke: 'var(--color-card)', strokeWidth: 2, fill: 'var(--color-primary)' }} />
+                    activeDot={{ r: 7, stroke: 'var(--color-card)', strokeWidth: 2.5, fill: 'var(--color-primary)' }} />
             </AreaChart>
         </ResponsiveContainer>
     )
@@ -139,37 +139,38 @@ export default function DriftTimeline() {
             </header>
 
             {/* ── Body ── */}
-            <main style={{ maxWidth: '32rem', margin: '0 auto', padding: '1.5rem 1.25rem 6rem' }}>
+            <main style={{ maxWidth: '64rem', margin: '0 auto', padding: '2rem 2rem 6rem' }}>
                 {/* Heading row */}
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-foreground)', margin: '0 0 4px' }}>
+                        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-foreground)', margin: '0 0 4px' }}>
                             Mood Drift
                         </h1>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
+                        <p style={{ fontSize: '0.9375rem', color: 'var(--color-muted-fg)', margin: 0 }}>
                             {activeTheme
-                                ? <>Entries tagged <strong style={{ color: 'var(--color-foreground)' }}>"{activeTheme}"</strong></>
+                                ? <>Entries tagged <strong style={{ color: 'var(--color-foreground)' }}>&#34;{activeTheme}&#34;</strong></>
                                 : 'Your emotional journey over time'}
                         </p>
                     </div>
                     {avgMood && (
-                        <div className="card" style={{ padding: '0.625rem 1rem', textAlign: 'right' }}>
-                            <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-muted-fg)', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Mood</p>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: moodColor(parseFloat(avgMood)) }}>{avgMood}</p>
+                        <div className="card" style={{ padding: '0.875rem 1.5rem', textAlign: 'right', background: 'rgba(253,251,248,0.85)', backdropFilter: 'blur(12px)' }}>
+                            <p style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted-fg)', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Mood</p>
+                            <p style={{ fontSize: '2rem', fontWeight: 700, margin: 0, color: moodColor(parseFloat(avgMood)), fontFamily: 'var(--font-serif)' }}>{avgMood}</p>
                         </div>
                     )}
                 </div>
 
                 {/* Theme pills */}
                 {themes.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1.25rem' }}>
                         <button
                             onClick={() => setActive(null)}
                             style={{
-                                padding: '0.375rem 0.875rem', borderRadius: '9999px', border: 'none',
-                                cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.15s',
-                                background: !activeTheme ? 'var(--color-primary)' : 'var(--color-muted)',
+                                padding: '0.4rem 1rem', borderRadius: '9999px', border: 'none',
+                                cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
+                                background: !activeTheme ? 'var(--color-primary)' : 'rgba(253,251,248,0.85)',
                                 color: !activeTheme ? 'var(--color-primary-fg)' : 'var(--color-muted-fg)',
+                                backdropFilter: 'blur(8px)',
                             }}>
                             All entries
                         </button>
@@ -177,11 +178,12 @@ export default function DriftTimeline() {
                             <button key={theme}
                                 onClick={() => setActive(p => p === theme ? null : theme)}
                                 style={{
-                                    padding: '0.375rem 0.875rem', borderRadius: '9999px', border: 'none',
-                                    cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.15s',
+                                    padding: '0.4rem 1rem', borderRadius: '9999px', border: 'none',
+                                    cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600, transition: 'all 0.15s',
                                     textTransform: 'capitalize',
-                                    background: activeTheme === theme ? 'var(--color-primary)' : 'var(--color-muted)',
+                                    background: activeTheme === theme ? 'var(--color-primary)' : 'rgba(253,251,248,0.85)',
                                     color: activeTheme === theme ? 'var(--color-primary-fg)' : 'var(--color-muted-fg)',
+                                    backdropFilter: 'blur(8px)',
                                 }}>
                                 {theme}
                             </button>
@@ -190,18 +192,18 @@ export default function DriftTimeline() {
                 )}
 
                 {/* Chart card */}
-                <div className="card" style={{ padding: '1.25rem' }}>
+                <div style={{ borderRadius: '1.25rem', padding: '1.5rem 1.5rem 1rem', background: 'rgba(253,251,248,0.82)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(200,195,185,0.5)', boxShadow: '0 4px 32px rgba(0,0,0,0.07)' }}>
                     {error && <p style={{ fontSize: '0.875rem', color: 'var(--color-destructive)', textAlign: 'center', padding: '2rem 0' }}>{error}</p>}
 
                     {!error && loading && (
-                        <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Loader2 size={22} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
+                        <div style={{ height: '480px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Loader2 size={26} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
                         </div>
                     )}
 
                     {!error && !loading && timeline.length < 2 && (
-                        <div style={{ height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', textAlign: 'center' }}>
+                        <div style={{ height: '340px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                            <p style={{ fontSize: '1rem', color: 'var(--color-muted-fg)', textAlign: 'center' }}>
                                 {activeTheme ? `No entries match "${activeTheme}" yet.` : 'Write a few entries to see your mood drift.'}
                             </p>
                         </div>
@@ -211,7 +213,7 @@ export default function DriftTimeline() {
                 </div>
 
                 {!loading && timeline.length > 0 && (
-                    <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', textAlign: 'center', marginTop: '0.75rem' }}>
+                    <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', textAlign: 'center', marginTop: '1rem' }}>
                         {timeline.length} {timeline.length === 1 ? 'entry' : 'entries'}
                         {activeTheme ? ` tagged "${activeTheme}"` : ' tracked'}
                     </p>
@@ -220,3 +222,4 @@ export default function DriftTimeline() {
         </div>
     )
 }
+
