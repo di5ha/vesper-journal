@@ -43,21 +43,30 @@ async function request(path, options = {}) {
 // ---------------------------------------------------------------------------
 
 /** Create a new journal entry. Returns the full EntryResponse. */
-export const createEntry = (content) =>
+export const createEntry = (payload) =>
     request('/entries', {
         method: 'POST',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(
+            typeof payload === 'string'
+                ? { content: payload }          // backward compat
+                : payload
+        ),
     })
 
-/** Update an existing entry's content. Returns updated EntryResponse. */
-export const updateEntry = (id, content) =>
+/** Update an existing entry. Returns updated EntryResponse. */
+export const updateEntry = (id, payload) =>
     request(`/entries/${id}`, {
         method: 'PUT',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify(
+            typeof payload === 'string'
+                ? { content: payload }          // backward compat
+                : payload
+        ),
     })
 
 /** List all entries for the current user (newest first). */
 export const listEntries = () => request('/entries')
+export const getEntries = listEntries   // alias used by V0 Dashboard
 
 /** Get a single entry by ID. */
 export const getEntry = (id) => request(`/entries/${id}`)

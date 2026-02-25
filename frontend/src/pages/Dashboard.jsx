@@ -1,164 +1,330 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { useAnalysis } from '../hooks/useAnalysis'
-import { getDashboardStats, generateReport } from '../lib/api'
-import JournalEditor from '../components/JournalEditor'
-import Sidebar from '../components/Sidebar'
-import InsightPanel from '../components/InsightPanel'
-import StreakCounter from '../components/StreakCounter'
-import MoodSparkline from '../components/MoodSparkline'
-import QuickLinks from '../components/QuickLinks'
+import { getEntries } from '../lib/api'
+import {
+    BookOpen, LogOut, Plus, Search, BookMarked, Loader2,
+} from 'lucide-react'
+import {
+    startOfWeek, addDays, isToday, isSameDay, format,
+} from 'date-fns'
 
-/**
- * Dashboard — writing shell with stats bar, editor, and insight panel.
- *
- *  ┌──────────────────────────────────────────────────────────┐
- *  │                      Top Nav                             │
- *  ├──────────┬───────────────────────────┬───────────────────┤
- *  │          │  Stats Bar (streak/spark) │                   │
- *  │ Sidebar  │  ────────────────────────  │  InsightPanel     │
- *  │  272px   │  JournalEditor (flex-1)   │   288px           │
- *  └──────────┴───────────────────────────┴───────────────────┘
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// Mood constants (matching V0 lib/types)
+// ─────────────────────────────────────────────────────────────────────────────
+export const MOODS = [
+    { value: 'happy', label: 'Happy', emoji: '😊' },
+    { value: 'calm', label: 'Calm', emoji: '😌' },
+    { value: 'grateful', label: 'Grateful', emoji: '🙏' },
+    { value: 'reflective', label: 'Reflective', emoji: '🤔' },
+    { value: 'anxious', label: 'Anxious', emoji: '😰' },
+    { value: 'sad', label: 'Sad', emoji: '😔' },
+]
+
+// Unpack title + mood from packed content string
+function parseEntry(entry) {
+    const raw = entry.content ?? ''
+    const lines = raw.split('\n')
+    const title = lines[0] || 'Untitled'
+    const moodMatch = (lines[1] ?? '').match(/^\[mood: (\w+)\]$/)
+    const mood = moodMatch ? moodMatch[1] : null
+    return { title, mood }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CalendarStrip
+// ─────────────────────────────────────────────────────────────────────────────
+function CalendarStrip({ selectedDate, onSelectDate }) {
+    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
+    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+
+    return (
+        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', padding: '0.75rem' }}>
+            {days.map(day => {
+                const selected = isSameDay(day, selectedDate)
+                const today = isToday(day)
+                return (
+                    <button
+                        key={day.toISOString()}
+                        onClick={() => onSelectDate(day)}
+                        style={{
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                            padding: '0.5rem 0.625rem',
+                            borderRadius: '0.75rem',
+                            border: 'none', cursor: 'pointer',
+                            background: selected
+                                ? 'var(--color-primary)'
+                                : today
+                                    ? 'oklch(0.50 0.10 170 / 0.10)'
+                                    : 'transparent',
+                            color: selected ? 'var(--color-primary-fg)'
+                                : today ? 'var(--color-primary)'
+                                    : 'var(--color-muted-fg)',
+                            transition: 'all 0.15s',
+                            flex: 1,
+                        }}>
+                        <span style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            {format(day, 'EEE')}
+                        </span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>{format(day, 'd')}</span>
+                    </button>
+                )
+            })}
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SearchBar
+// ─────────────────────────────────────────────────────────────────────────────
+function SearchBar({ value, onChange }) {
+    return (
+        <div style={{ position: 'relative' }}>
+            <Search size={16} style={{
+                position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)',
+                color: 'var(--color-muted-fg)', pointerEvents: 'none',
+            }} />
+            <input
+                className="input"
+                style={{ paddingLeft: '2.5rem', height: '2.75rem', borderRadius: '0.75rem' }}
+                placeholder="Search entries"
+                value={value}
+                onChange={e => onChange(e.target.value)}
+            />
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TodayCard — teal tile in horizontal scroll
+// ─────────────────────────────────────────────────────────────────────────────
+function TodayCard({ entry, onClick }) {
+    const { title, mood: moodValue } = parseEntry(entry)
+    const mood = MOODS.find(m => m.value === moodValue)
+    return (
+        <button onClick={onClick}
+            style={{
+                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+                minWidth: '160px', minHeight: '140px', padding: '1rem',
+                borderRadius: '1rem', border: 'none', cursor: 'pointer',
+                background: 'var(--color-primary)', color: 'var(--color-primary-fg)',
+                textAlign: 'left', transition: 'all 0.15s',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.16)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)' }}>
+            <div style={{ fontSize: '1.25rem' }}>{mood?.emoji ?? '📖'}</div>
+            <div>
+                <p style={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.3, margin: '0 0 4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {title}
+                </p>
+                <p style={{ fontSize: '0.75rem', opacity: 0.8, margin: 0 }}>
+                    {format(new Date(entry.created_at), 'HH:mm')}
+                </p>
+            </div>
+        </button>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EntryCard — row in the entries list
+// ─────────────────────────────────────────────────────────────────────────────
+function EntryCard({ entry, onClick }) {
+    const { title, mood: moodValue } = parseEntry(entry)
+    const mood = MOODS.find(m => m.value === moodValue)
+    return (
+        <button onClick={onClick}
+            style={{
+                display: 'flex', alignItems: 'center', gap: '0.875rem',
+                width: '100%', padding: '0.875rem 1rem',
+                background: 'var(--color-card)',
+                border: '1px solid var(--color-border)',
+                borderLeft: '3px solid var(--color-primary)',
+                borderRadius: '0.75rem',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'box-shadow 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontWeight: 600, fontSize: '0.9375rem', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-foreground)' }}>
+                    {title}
+                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', margin: 0 }}>
+                    {format(new Date(entry.created_at), 'MMM d, yyyy')}
+                </p>
+            </div>
+            <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>{mood?.emoji ?? ''}</span>
+        </button>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dashboard (Journal Home)
+// ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const [entries, setEntries] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [search, setSearch] = useState('')
+    const [selectedDate, setSelectedDate] = useState(new Date())
 
-    const [active, setActive] = useState(null)
-    const [refreshTick, setRefreshTick] = useState(0)
-    const [lastSavedAt, setLastSavedAt] = useState(null)
+    // greeting
+    const hour = new Date().getHours()
+    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+    const name = user?.email?.split('@')[0] ?? 'there'
 
-    // AI analysis — polls automatically when active.id changes
-    const { analysis, analyzing } = useAnalysis(active?.id ?? null)
-
-    // Dashboard stats
-    const [stats, setStats] = useState(null)
-    const [generating, setGenerating] = useState(false)
-
-    useEffect(() => {
-        getDashboardStats()
-            .then(setStats)
+    const load = useCallback(() => {
+        setLoading(true)
+        getEntries()
+            .then(setEntries)
             .catch(console.error)
-    }, [refreshTick])
+            .finally(() => setLoading(false))
+    }, [])
+
+    useEffect(() => { load() }, [load])
 
     async function handleSignOut() {
         await supabase.auth.signOut()
         navigate('/auth')
     }
 
-    const handleSaved = useCallback((entry) => {
-        setLastSavedAt(entry.updated_at)
-        setActive((prev) => {
-            if (!prev || prev.id !== entry.id) {
-                return { id: entry.id, content: entry.content }
-            }
-            return prev
-        })
-        setRefreshTick((t) => t + 1)
-    }, [])
+    // Filter
+    const filtered = useMemo(() =>
+        entries.filter(e =>
+            !search ||
+            (e.title ?? '').toLowerCase().includes(search.toLowerCase()) ||
+            (e.content ?? '').toLowerCase().includes(search.toLowerCase())
+        ), [entries, search])
 
-    function handleSelectEntry(entry) {
-        setActive({ id: entry.id, content: entry.content })
-    }
+    const todayEntries = useMemo(() => filtered.filter(e => isToday(new Date(e.created_at))), [filtered])
+    const recentEntries = useMemo(() => filtered.filter(e => !isToday(new Date(e.created_at))), [filtered])
 
-    function handleNewEntry() {
-        setActive(null)
-    }
-
-    function handleEntryDeleted(deletedId) {
-        if (active?.id === deletedId) setActive(null)
-    }
-
-    async function handleGenerateReport() {
-        setGenerating(true)
-        try {
-            await generateReport()
-            navigate('/reports')
-        } catch (err) {
-            alert(`Report generation failed: ${err.message}`)
-        } finally {
-            setGenerating(false)
-        }
-    }
-
-    const editorKey = active?.id ?? 'new'
+    const goToEntry = (id) => navigate(`/journal/${id}`)
 
     return (
-        <div className="min-h-screen bg-[#0f0f13] flex flex-col">
-            {/* ── Top nav ── */}
-            <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-                <span className="text-white font-semibold tracking-tight select-none">✦ vesper</span>
-                <div className="flex items-center gap-4">
-                    {lastSavedAt && (
-                        <span className="text-xs text-white/25 hidden sm:block">
-                            Last saved{' '}
-                            {new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                    )}
-                    <span className="w-7 h-7 rounded-full bg-violet-600/30 border border-violet-500/30 flex items-center justify-center text-violet-300 text-xs font-medium select-none">
-                        {user?.email?.[0]?.toUpperCase() ?? '?'}
-                    </span>
-                    <button
-                        onClick={handleSignOut}
-                        className="text-xs text-white/30 hover:text-red-400 transition-colors"
-                    >
-                        Sign out
+        <div style={{ background: 'var(--color-background)', minHeight: '100svh' }}>
+            {/* ── Nav ── */}
+            <header style={{
+                position: 'sticky', top: 0, zIndex: 20,
+                background: 'oklch(0.975 0.005 75 / 0.92)',
+                backdropFilter: 'blur(12px)',
+                borderBottom: '1px solid var(--color-border)',
+            }}>
+                <div style={{ maxWidth: '32rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
+                        <BookOpen size={20} />
+                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
+                    </div>
+                    <button onClick={handleSignOut} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <LogOut size={15} />
+                        <span>Sign out</span>
                     </button>
                 </div>
             </header>
 
-            {/* ── Body: sidebar | main | insight panel ── */}
-            <div className="flex flex-1 overflow-hidden">
-                {/* Sidebar */}
-                <Sidebar
-                    activeEntryId={active?.id ?? null}
-                    onSelectEntry={handleSelectEntry}
-                    onNewEntry={handleNewEntry}
-                    onEntryDeleted={handleEntryDeleted}
-                    refreshTick={refreshTick}
-                />
-
-                {/* Centre column: stats bar + editor */}
-                <main className="flex-1 overflow-y-auto min-w-0 flex flex-col">
-                    {/* Stats bar */}
-                    <div className="border-b border-white/5 px-6 py-4">
-                        <div className="max-w-2xl mx-auto flex flex-wrap items-center gap-3">
-                            <StreakCounter streak={stats?.current_streak ?? 0} />
-                            <div className="flex-1 min-w-[140px]">
-                                <MoodSparkline data={stats?.mood_sparkline ?? []} />
-                            </div>
-                            <QuickLinks
-                                onNewEntry={handleNewEntry}
-                                onGenerateReport={handleGenerateReport}
-                                generating={generating}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Editor — main writing area */}
-                    <div className="flex-1">
-                        <div className="max-w-2xl mx-auto h-full">
-                            <JournalEditor
-                                key={editorKey}
-                                initialEntryId={active?.id ?? null}
-                                initialContent={active?.content ?? ''}
-                                onSaved={handleSaved}
-                            />
-                        </div>
-                    </div>
-                </main>
-
-                {/* Insight Panel — right column, hidden on small screens */}
-                <div className="hidden lg:block">
-                    <InsightPanel
-                        entryId={active?.id ?? null}
-                        analysis={analysis}
-                        analyzing={analyzing}
-                    />
+            {/* ── Body ── */}
+            <main style={{ maxWidth: '32rem', margin: '0 auto', padding: '1.5rem 1.25rem 8rem' }}>
+                {/* Greeting */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-foreground)', margin: '0 0 4px' }}>
+                        {greeting}, {name}
+                    </h1>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
+                        {format(new Date(), 'EEEE, MMMM d, yyyy')}
+                    </p>
                 </div>
-            </div>
+
+                {/* Content */}
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}>
+                        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        {/* Calendar */}
+                        <CalendarStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+
+                        {/* Search */}
+                        <SearchBar value={search} onChange={setSearch} />
+
+                        {/* Empty state */}
+                        {entries.length === 0 && (
+                            <div style={{
+                                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                                padding: '4rem 1rem', textAlign: 'center',
+                                borderRadius: '1rem', border: '2px dashed var(--color-border)',
+                                background: 'var(--color-card)', gap: '0.75rem',
+                            }}>
+                                <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <BookMarked size={22} color='var(--color-primary)' />
+                                </div>
+                                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Your journal is empty</h3>
+                                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', maxWidth: '18rem', lineHeight: 1.6, margin: 0 }}>
+                                    Start writing your first entry. Capture a thought, reflect on your day, or jot down something you're grateful for.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Today section */}
+                        {todayEntries.length > 0 && (
+                            <section>
+                                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: '0 0 0.75rem' }}>Today</h2>
+                                <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                                    {todayEntries.map(e => <TodayCard key={e.id} entry={e} onClick={() => goToEntry(e.id)} />)}
+                                    {/* New entry tile */}
+                                    <button onClick={() => navigate('/journal/new')}
+                                        style={{
+                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                            minWidth: '140px', minHeight: '140px', borderRadius: '1rem',
+                                            border: '2px dashed var(--color-border)', background: 'var(--color-card)',
+                                            cursor: 'pointer', color: 'var(--color-muted-fg)', fontSize: '2rem', fontWeight: 300,
+                                            transition: 'border-color 0.15s, color 0.15s',
+                                        }}
+                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)' }}
+                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted-fg)' }}>
+                                        +
+                                    </button>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* Recent Entries list */}
+                        {(todayEntries.length > 0 ? recentEntries : filtered).length > 0 && (
+                            <section>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                                    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
+                                        {todayEntries.length > 0 ? 'Recent Entries' : 'All Entries'}
+                                    </h2>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {(todayEntries.length > 0 ? recentEntries : filtered).map(e => (
+                                        <EntryCard key={e.id} entry={e} onClick={() => goToEntry(e.id)} />
+                                    ))}
+                                </div>
+                            </section>
+                        )}
+                    </div>
+                )}
+            </main>
+
+            {/* FAB — new entry */}
+            <button onClick={() => navigate('/journal/new')} aria-label="New entry"
+                style={{
+                    position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 50,
+                    width: '3.5rem', height: '3.5rem',
+                    borderRadius: '9999px', border: 'none', cursor: 'pointer',
+                    background: 'var(--color-primary)', color: 'var(--color-primary-fg)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
+                    transition: 'transform 0.1s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
+                <Plus size={24} />
+            </button>
         </div>
     )
 }

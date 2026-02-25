@@ -3,19 +3,10 @@ import { AuthProvider } from './hooks/useAuth'
 import ProtectedRoute from './components/ProtectedRoute'
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
+import JournalEditor from './pages/JournalEditor'
 import DriftTimeline from './pages/DriftTimeline'
 import Reports from './pages/Reports'
 
-/**
- * App — root router.
- *
- * Routes:
- *   /           → redirect to /dashboard
- *   /auth       → login / signup (public)
- *   /dashboard  → protected; redirects to /auth if unauthenticated
- *
- * More routes will be added in Phase 1.5+ (editor, entries, drift, reports).
- */
 export default function App() {
   return (
     <BrowserRouter>
@@ -24,36 +15,30 @@ export default function App() {
           {/* Public */}
           <Route path="/auth" element={<Auth />} />
 
-          {/* Protected */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+          {/* Protected — journal home */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute><Dashboard /></ProtectedRoute>
+          } />
 
-          <Route
-            path="/drift"
-            element={
-              <ProtectedRoute>
-                <DriftTimeline />
-              </ProtectedRoute>
-            }
-          />
+          {/* Protected — new entry */}
+          <Route path="/journal/new" element={
+            <ProtectedRoute><JournalEditor /></ProtectedRoute>
+          } />
 
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
+          {/* Protected — edit existing entry */}
+          <Route path="/journal/:id" element={
+            <ProtectedRoute><JournalEditor /></ProtectedRoute>
+          } />
 
+          {/* Protected — Drift & Reports (keep from main but styled) */}
+          <Route path="/drift" element={
+            <ProtectedRoute><DriftTimeline /></ProtectedRoute>
+          } />
+          <Route path="/reports" element={
+            <ProtectedRoute><Reports /></ProtectedRoute>
+          } />
 
-          {/* Fallback: redirect root → dashboard (ProtectedRoute handles auth check) */}
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>

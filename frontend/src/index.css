@@ -1,1 +1,188 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&display=swap');
+@import 'tailwindcss';
+
+/* ─── V0 Design Tokens ─────────────────────────────────────── */
+@theme inline {
+    --font-sans: 'Inter', 'system-ui', sans-serif;
+    --font-serif: 'Lora', 'Georgia', serif;
+
+    /* Palette — warm off-white canvas, teal-green primary */
+    --color-background: oklch(0.975 0.005 75);
+    --color-foreground: oklch(0.20 0.02 55);
+    --color-card: oklch(0.995 0.002 75);
+    --color-muted: oklch(0.94 0.01 75);
+    --color-muted-fg: oklch(0.50 0.015 55);
+    --color-border: oklch(0.91 0.008 75);
+
+    /* Primary — teal green matching V0 */
+    --color-primary: oklch(0.50 0.10 170);
+    --color-primary-fg: oklch(0.99 0.002 170);
+
+    /* Destructive */
+    --color-destructive: oklch(0.577 0.245 27.325);
+
+    --radius: 0.75rem;
+}
+
+/* ─── Base ──────────────────────────────────────────────────── */
+@layer base {
+
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: var(--font-sans);
+        background: var(--color-background);
+        color: var(--color-foreground);
+        -webkit-font-smoothing: antialiased;
+    }
+
+    h1,
+    h2,
+    h3 {
+        font-family: var(--font-serif);
+    }
+
+    /* Scrollbar — thin teal */
+    ::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: oklch(0.50 0.10 170 / 0.3);
+        border-radius: 99px;
+    }
+}
+
+/* ─── Utility classes ───────────────────────────────────────── */
+.card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 1rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* Primary pill button */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-primary);
+    color: var(--color-primary-fg);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-primary:hover {
+    opacity: 0.88;
+}
+
+.btn-primary:active {
+    transform: scale(0.97);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Ghost button */
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: transparent;
+    color: var(--color-muted-fg);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.btn-ghost:hover {
+    background: var(--color-muted);
+    color: var(--color-foreground);
+}
+
+/* Icon button */
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    background: transparent;
+    border: none;
+    border-radius: 9999px;
+    cursor: pointer;
+    color: var(--color-muted-fg);
+    transition: background 0.15s;
+}
+
+.btn-icon:hover {
+    background: var(--color-muted);
+    color: var(--color-foreground);
+}
+
+/* Form input */
+.input {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: 0.75rem;
+    font-size: 0.9375rem;
+    color: var(--color-foreground);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px oklch(0.50 0.10 170 / 0.12);
+}
+
+.input::placeholder {
+    color: oklch(0.50 0.015 55 / 0.5);
+}
+
+/* Label */
+.label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+    margin-bottom: 0.375rem;
+}
+
+/* Teal pill badge */
+.badge-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.625rem;
+    background: oklch(0.50 0.10 170 / 0.10);
+    color: var(--color-primary);
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 9999px;
+}
