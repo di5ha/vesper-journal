@@ -1,20 +1,20 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import {
     getEntries, getEntry, createEntry, updateEntry,
-    deleteEntry, getAnalysis, getDashboardStats,
+    deleteEntry, searchEntries, getAnalysis, getDashboardStats,
 } from '../lib/api'
 import {
     BookOpen, LogOut, Plus, Search, BookMarked,
     Loader2, Trash2, MoreHorizontal, BarChart2, FileText,
-    TrendingUp, Flame, Sparkles,
+    Flame, Sparkles, X,
 } from 'lucide-react'
-import { format, isToday, formatDistanceToNow } from 'date-fns'
+import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Constants
+// Moods
 // ─────────────────────────────────────────────────────────────────────────────
 const MOODS = [
     { value: 'happy', emoji: '😊', label: 'Happy' },
@@ -25,31 +25,50 @@ const MOODS = [
     { value: 'sad', emoji: '😔', label: 'Sad' },
 ]
 
-// Content format: [V]\n<title>\n[mood: xxx]\n<body>  — or old raw content
-function packContent(title, mood, body) {
-    const parts = ['[V]', title.trim()]
-    if (mood) parts.push(`[mood: ${mood}]`)
-    parts.push(body)
-    return parts.join('\n')
+// Content stored as raw text (no title).
+// Mood tag prepended if set: "[mood: happy]\n<body>"
+function packContent(mood, body) {
+    if (mood) return `[mood: ${mood}]\n${body}`
+    return body
 }
+
 function unpackContent(raw) {
-    if (!raw) return { title: '', mood: '', body: '' }
-    const lines = raw.split('\n')
-    if (lines[0] !== '[V]') return { title: '', mood: '', body: raw }
-    const title = lines[1] ?? ''
-    const moodMatch = (lines[2] ?? '').match(/^\[mood: (\w+)\]$/)
-    if (moodMatch) return { title, mood: moodMatch[1], body: lines.slice(3).join('\n').trimStart() }
-    return { title, mood: '', body: lines.slice(2).join('\n').trimStart() }
+    if (!raw) return { mood: '', body: '' }
+    // Old V-format with title (from previous iteration) — strip it
+    if (raw.startsWith('[V]\n')) {
+        const lines = raw.split('\n')
+        const moodMatch = (lines[2] ?? '').match(/^\[mood: (\w+)\]$/)
+        if (moodMatch) return { mood: moodMatch[1], body: lines.slice(3).join('\n').trimStart() }
+        return { mood: '', body: lines.slice(2).join('\n').trimStart() }
+    }
+    // New format: optional [mood: xxx] on first line
+    const moodMatch = raw.match(/^\[mood: (\w+)\]\n?/)
+    if (moodMatch) return { mood: moodMatch[1], body: raw.slice(moodMatch[0].length) }
+    return { mood: '', body: raw }
+}
+
+// Short display snippet for sidebar
+function snippet(raw, maxLen = 72) {
+    const { body } = unpackContent(raw)
+    const text = body.replace(/\s+/g, ' ').trim()
+    return text.length > maxLen ? text.slice(0, maxLen) + '…' : text || 'Empty entry'
+}
+
+function relativeDate(iso) {
+    const d = new Date(iso)
+    if (isToday(d)) return format(d, 'h:mm a')
+    if (isYesterday(d)) return 'Yesterday'
+    return format(d, 'MMM d')
 }
 
 function moodColor(score) {
     if (score == null) return 'var(--color-muted-fg)'
-    const hue = Math.round(((score - 1) / 9) * 140)   // 0=red, 140=green
+    const hue = Math.round(((score - 1) / 9) * 140)
     return `hsl(${hue},72%,48%)`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mood Arc SVG (semicircle gauge)
+// Mood Arc
 // ─────────────────────────────────────────────────────────────────────────────
 function MoodArc({ score }) {
     const pct = (score - 1) / 9
@@ -58,26 +77,19 @@ function MoodArc({ score }) {
     const angle = Math.PI - pct * Math.PI
     const endX = cx + r * Math.cos(Math.PI - angle)
     const endY = cy - r * Math.sin(angle)
-    const largeArc = pct > 0.5 ? 0 : 1
+    const large = pct > 0.5 ? 0 : 1
     const color = moodColor(score)
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-            <svg width="120" height="68" viewBox="0 0 120 72" aria-label={`Mood score ${score} out of 10`}>
-                {/* Track */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+            <svg width="120" height="68" viewBox="0 0 120 72">
                 <path d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
                     fill="none" stroke="var(--color-muted)" strokeWidth="9" strokeLinecap="round" />
-                {/* Fill */}
-                {pct > 0.01 && (
-                    <path d={`M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 0 ${endX} ${endY}`}
-                        fill="none" stroke={color} strokeWidth="9" strokeLinecap="round" />
-                )}
-                {/* Score */}
-                <text x={cx} y={cy + 14} textAnchor="middle"
-                    fill={color} fontSize="22" fontWeight="700" fontFamily="var(--font-serif)">
-                    {score.toFixed(1)}
-                </text>
+                {pct > 0.01 && <path d={`M ${startX} ${startY} A ${r} ${r} 0 ${large} 0 ${endX} ${endY}`}
+                    fill="none" stroke={color} strokeWidth="9" strokeLinecap="round" />}
+                <text x={cx} y={cy + 14} textAnchor="middle" fill={color}
+                    fontSize="22" fontWeight="700" fontFamily="var(--font-serif)">{score.toFixed(1)}</text>
             </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-between', width: '6rem', fontSize: '0.625rem', color: 'var(--color-muted-fg)', marginTop: '-4px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', width: '5.5rem', fontSize: '0.5625rem', color: 'var(--color-muted-fg)', marginTop: '-2px' }}>
                 <span>low</span><span>high</span>
             </div>
         </div>
@@ -85,106 +97,83 @@ function MoodArc({ score }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Right panel: Dashboard stats (shown when no entry selected)
+// Dashboard stats (right panel — home state)
 // ─────────────────────────────────────────────────────────────────────────────
 function DashboardStatsPanel({ entryCount }) {
     const [stats, setStats] = useState(null)
-    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        getDashboardStats()
-            .then(setStats)
-            .catch(console.error)
-            .finally(() => setLoading(false))
+        getDashboardStats().then(setStats).catch(console.error)
     }, [])
 
     return (
         <aside style={{
-            width: '260px', flexShrink: 0, overflowY: 'auto',
+            width: '256px', flexShrink: 0, overflowY: 'auto',
             borderLeft: '1px solid var(--color-border)',
             background: 'var(--color-card)',
-            display: 'flex', flexDirection: 'column',
         }}>
             <div style={{ padding: '1rem 1rem 0.5rem' }}>
-                <p style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: 0 }}>
-                    Dashboard
-                </p>
+                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: 0 }}>Dashboard</p>
             </div>
 
-            {loading && (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
-                    <Loader2 size={18} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
-                </div>
-            )}
+            {!stats && <div style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem' }}><Loader2 size={16} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} /></div>}
 
-            {!loading && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                    {/* Stat cards row */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.625rem 0.875rem' }}>
-                        <div style={{ background: 'var(--color-background)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '4px', color: '#e97b5a' }}>
-                                <Flame size={14} />
-                                <span style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted-fg)' }}>Streak</span>
+            {stats && (
+                <>
+                    {/* Stats grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', padding: '0.5rem 0.75rem' }}>
+                        {[
+                            { label: 'Streak', value: stats.current_streak, unit: 'days', color: stats.current_streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)', icon: '🔥' },
+                            { label: 'Entries', value: entryCount, unit: 'total', color: 'var(--color-primary)', icon: '📔' },
+                        ].map(s => (
+                            <div key={s.label} style={{
+                                background: 'var(--color-background)', borderRadius: '0.75rem',
+                                padding: '0.75rem 0.5rem', textAlign: 'center',
+                                border: '1px solid var(--color-border)',
+                            }}>
+                                <span style={{ fontSize: '1rem', display: 'block', marginBottom: '3px' }}>{s.icon}</span>
+                                <p style={{ fontSize: '1.375rem', fontWeight: 700, fontFamily: 'var(--font-serif)', margin: '0', color: s.color }}>{s.value}</p>
+                                <p style={{ fontSize: '0.5625rem', color: 'var(--color-muted-fg)', margin: '1px 0 0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.unit}</p>
                             </div>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-serif)', margin: 0, color: stats?.current_streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)' }}>
-                                {stats?.current_streak ?? 0}
-                            </p>
-                            <p style={{ fontSize: '0.625rem', color: 'var(--color-muted-fg)', margin: 0 }}>days</p>
-                        </div>
-                        <div style={{ background: 'var(--color-background)', borderRadius: '0.75rem', padding: '0.75rem', textAlign: 'center' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', marginBottom: '4px' }}>
-                                <BookOpen size={14} style={{ color: 'var(--color-primary)' }} />
-                                <span style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--color-muted-fg)' }}>Entries</span>
-                            </div>
-                            <p style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-serif)', margin: 0, color: 'var(--color-primary)' }}>
-                                {entryCount}
-                            </p>
-                            <p style={{ fontSize: '0.625rem', color: 'var(--color-muted-fg)', margin: 0 }}>total</p>
-                        </div>
+                        ))}
                     </div>
 
-                    {/* Mood sparkline */}
-                    {stats?.mood_sparkline?.some(d => d.mood !== null) && (
-                        <div style={{ padding: '0.625rem 0.875rem', borderTop: '1px solid var(--color-border)' }}>
-                            <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: '0 0 0.5rem' }}>7-day mood</p>
-                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '48px' }}>
+                    {/* Sparkline */}
+                    {stats.mood_sparkline?.some(d => d.mood != null) && (
+                        <div style={{ padding: '0.625rem 0.75rem', borderTop: '1px solid var(--color-border)' }}>
+                            <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.5rem' }}>7-day mood</p>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '3px', height: '40px' }}>
                                 {stats.mood_sparkline.map((d, i) => {
-                                    const h = d.mood ? Math.round(((d.mood - 1) / 9) * 48) : 0
+                                    const h = d.mood ? Math.max(Math.round(((d.mood - 1) / 9) * 36), 4) : 4
                                     const c = d.mood ? moodColor(d.mood) : 'var(--color-muted)'
                                     return (
-                                        <div key={i} title={d.mood ? `${d.date}: ${d.mood}` : d.date}
-                                            style={{
-                                                flex: 1, height: `${Math.max(h, 4)}px`,
-                                                background: c, borderRadius: '3px',
-                                                opacity: d.mood ? 1 : 0.3,
-                                            }} />
+                                        <div key={i} title={d.mood ? `${d.date}: ${d.mood}` : 'No entry'}
+                                            style={{ flex: 1, height: `${h}px`, background: c, borderRadius: '3px 3px 0 0', opacity: d.mood ? 1 : 0.25, transition: 'height 0.3s ease' }} />
                                     )
                                 })}
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.5625rem', color: 'var(--color-muted-fg)', marginTop: '3px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '3px' }}>
                                 {stats.mood_sparkline.map(d => (
-                                    <span key={d.date}>{new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'narrow' })}</span>
+                                    <span key={d.date} style={{ fontSize: '0.5rem', color: 'var(--color-muted-fg)', flex: 1, textAlign: 'center' }}>
+                                        {new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'narrow' })}
+                                    </span>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Latest analysis */}
-                    {stats?.latest_analysis && (
-                        <div style={{ padding: '0.625rem 0.875rem', borderTop: '1px solid var(--color-border)' }}>
+                    {/* Latest insight */}
+                    {stats.latest_analysis ? (
+                        <div style={{ padding: '0.625rem 0.75rem', borderTop: '1px solid var(--color-border)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.5rem' }}>
-                                <Sparkles size={13} style={{ color: 'var(--color-primary)' }} />
-                                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: 0 }}>Latest Insight</p>
+                                <Sparkles size={12} style={{ color: 'var(--color-primary)' }} />
+                                <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: 0 }}>Latest Insight</p>
                             </div>
-                            {stats.latest_analysis.mood_score != null && (
-                                <div style={{ marginBottom: '0.75rem' }}>
-                                    <MoodArc score={stats.latest_analysis.mood_score} />
-                                </div>
-                            )}
+                            {stats.latest_analysis.mood_score != null && <div style={{ marginBottom: '0.625rem' }}><MoodArc score={stats.latest_analysis.mood_score} /></div>}
                             {stats.latest_analysis.themes?.length > 0 && (
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginBottom: '0.625rem' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '0.5rem' }}>
                                     {stats.latest_analysis.themes.slice(0, 4).map(t => (
-                                        <span key={t} className="badge-primary" style={{ fontSize: '0.6875rem', textTransform: 'capitalize' }}>{t}</span>
+                                        <span key={t} className="badge-primary" style={{ fontSize: '0.625rem', textTransform: 'capitalize' }}>{t}</span>
                                     ))}
                                 </div>
                             )}
@@ -194,140 +183,107 @@ function DashboardStatsPanel({ entryCount }) {
                                 </p>
                             )}
                         </div>
+                    ) : (
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', padding: '1rem 0.75rem', borderTop: '1px solid var(--color-border)', lineHeight: 1.6 }}>
+                            Write your first entry to see AI insights here.
+                        </p>
                     )}
-
-                    {/* No analysis yet */}
-                    {!stats?.latest_analysis && !loading && (
-                        <div style={{ padding: '1rem 0.875rem', borderTop: '1px solid var(--color-border)', textAlign: 'center' }}>
-                            <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', lineHeight: 1.6, margin: 0 }}>
-                                Write your first entry to see AI insights here.
-                            </p>
-                        </div>
-                    )}
-                </div>
+                </>
             )}
         </aside>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Right panel: Entry AI analysis
+// Entry insights (right panel — entry open)
 // ─────────────────────────────────────────────────────────────────────────────
 function EntryInsightPanel({ entryId }) {
     const [analysis, setAnalysis] = useState(null)
     const [loading, setLoading] = useState(true)
     const [polling, setPolling] = useState(false)
+    const timerRef = useRef(null)
 
     useEffect(() => {
         if (!entryId) return
-        setAnalysis(null); setLoading(true)
+        setAnalysis(null); setLoading(true); setPolling(false)
+        clearTimeout(timerRef.current)
 
         function fetch() {
             getAnalysis(entryId)
                 .then(data => {
-                    setAnalysis(data)
-                    setLoading(false)
-                    if (!data.analyzed) {
-                        setPolling(true)
-                        setTimeout(fetch, 3500)
-                    } else {
-                        setPolling(false)
-                    }
+                    setAnalysis(data); setLoading(false)
+                    if (!data.analyzed) { setPolling(true); timerRef.current = setTimeout(fetch, 3500) }
+                    else setPolling(false)
                 })
-                .catch(() => { setLoading(false) })
+                .catch(() => setLoading(false))
         }
         fetch()
+        return () => clearTimeout(timerRef.current)
     }, [entryId])
 
     const { mood_score, themes = [], distortions = [], observation, analyzed } = analysis ?? {}
 
     return (
-        <aside style={{
-            width: '260px', flexShrink: 0, overflowY: 'auto',
-            borderLeft: '1px solid var(--color-border)',
-            background: 'var(--color-card)',
-            display: 'flex', flexDirection: 'column',
-        }}>
-            <div style={{ padding: '1rem 1rem 0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Sparkles size={14} style={{ color: 'var(--color-primary)' }} />
-                <p style={{ fontSize: '0.6875rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: 0 }}>
-                    Insights
-                </p>
-                {polling && <Loader2 size={12} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite', marginLeft: 'auto' }} />}
+        <aside style={{ width: '256px', flexShrink: 0, overflowY: 'auto', borderLeft: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '1rem 0.875rem 0.5rem' }}>
+                <Sparkles size={13} style={{ color: 'var(--color-primary)' }} />
+                <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: 0 }}>Insights</p>
+                {polling && <Loader2 size={11} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite', marginLeft: 'auto' }} />}
             </div>
 
             {loading && (
-                <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
-                    {[1, 0.6, 0.8].map((w, i) => (
-                        <div key={i} style={{ height: '12px', background: 'var(--color-muted)', borderRadius: '6px', width: `${w * 100}%`, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div style={{ padding: '1rem 0.875rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {[100, 60, 80, 45].map((w, i) => (
+                        <div key={i} style={{ height: '10px', background: 'var(--color-muted)', borderRadius: '6px', width: `${w}%`, animation: 'pulse 1.5s ease-in-out infinite' }} />
                     ))}
                 </div>
             )}
-
-            {!loading && !analyzed && !polling && (
-                <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', padding: '1rem', lineHeight: 1.6 }}>
-                    Analysis hasn't run yet for this entry. Save your entry to trigger it.
+            {!loading && !analyzed && (
+                <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', padding: '0.875rem', lineHeight: 1.6, fontStyle: polling ? 'italic' : 'normal' }}>
+                    {polling ? 'Analysing your entry…' : 'Save the entry to trigger AI analysis.'}
                 </p>
             )}
-
-            {!loading && polling && !analyzed && (
-                <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', padding: '1rem', lineHeight: 1.6, fontStyle: 'italic' }}>
-                    Analysing your entry…
-                </p>
-            )}
-
             {!loading && analyzed && (
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    {/* Mood arc */}
+                <div>
                     {mood_score != null && (
-                        <div style={{ padding: '0.75rem 0.875rem', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                            <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: 0 }}>Mood Score</p>
+                        <div style={{ padding: '0.625rem 0.875rem', borderTop: '1px solid var(--color-border)', borderBottom: '1px solid var(--color-border)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.25rem' }}>Mood Score</p>
                             <MoodArc score={mood_score} />
                         </div>
                     )}
-
-                    {/* Themes */}
                     {themes.length > 0 && (
-                        <div style={{ padding: '0.75rem 0.875rem', borderBottom: '1px solid var(--color-border)' }}>
-                            <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: '0 0 0.5rem' }}>Themes</p>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-                                {themes.map(t => (
-                                    <span key={t} className="badge-primary" style={{ fontSize: '0.6875rem', textTransform: 'capitalize' }}>{t}</span>
-                                ))}
+                        <div style={{ padding: '0.625rem 0.875rem', borderBottom: '1px solid var(--color-border)' }}>
+                            <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.4rem' }}>Themes</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                                {themes.map(t => <span key={t} className="badge-primary" style={{ fontSize: '0.625rem', textTransform: 'capitalize' }}>{t}</span>)}
                             </div>
                         </div>
                     )}
-
-                    {/* Cognitive patterns */}
-                    <div style={{ padding: '0.75rem 0.875rem', borderBottom: '1px solid var(--color-border)' }}>
-                        <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: '0 0 0.5rem' }}>Cognitive Patterns</p>
+                    <div style={{ padding: '0.625rem 0.875rem', borderBottom: '1px solid var(--color-border)' }}>
+                        <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.4rem' }}>Cognitive Patterns</p>
                         {distortions.length === 0 ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                                <span style={{ width: '16px', height: '16px', borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.625rem', color: 'var(--color-primary)' }}>✓</span>
-                                <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)' }}>No distortions flagged</span>
+                                <span style={{ width: '15px', height: '15px', borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5625rem', color: 'var(--color-primary)' }}>✓</span>
+                                <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)' }}>None flagged</span>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
                                 {distortions.map(d => {
                                     const label = d?.label ?? d
                                     return (
-                                        <div key={label} style={{ borderRadius: '0.5rem', padding: '0.375rem 0.625rem', background: 'oklch(0.85 0.15 60 / 0.10)', border: '1px solid oklch(0.85 0.15 60 / 0.20)', display: 'flex', alignItems: 'flex-start', gap: '0.375rem' }}>
-                                            <span style={{ color: '#e9a25a', fontSize: '0.75rem', marginTop: '1px' }}>⚠</span>
-                                            <span style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-foreground)' }}>{label}</span>
+                                        <div key={label} style={{ borderRadius: '0.5rem', padding: '0.3rem 0.5rem', background: 'oklch(0.85 0.15 60 / 0.08)', border: '1px solid oklch(0.85 0.15 60 / 0.18)', display: 'flex', gap: '0.375rem' }}>
+                                            <span style={{ color: '#e9a25a', fontSize: '0.6875rem' }}>⚠</span>
+                                            <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-foreground)' }}>{label}</span>
                                         </div>
                                     )
                                 })}
                             </div>
                         )}
                     </div>
-
-                    {/* Observation */}
                     {observation && (
-                        <div style={{ padding: '0.75rem 0.875rem' }}>
-                            <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-muted-fg)', margin: '0 0 0.375rem' }}>Observation</p>
-                            <p style={{ fontSize: '0.875rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.65, margin: 0 }}>
-                                "{observation}"
-                            </p>
+                        <div style={{ padding: '0.625rem 0.875rem' }}>
+                            <p style={{ fontSize: '0.5625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 0.375rem' }}>Observation</p>
+                            <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.65, margin: 0 }}>"{observation}"</p>
                         </div>
                     )}
                 </div>
@@ -343,40 +299,31 @@ function MoodPicker({ mood, onChange }) {
     const [open, setOpen] = useState(false)
     const selected = MOODS.find(m => m.value === mood)
     return (
-        <div style={{ position: 'relative', display: 'inline-block' }}>
+        <div style={{ position: 'relative' }}>
             <button onClick={() => setOpen(o => !o)} title="Set mood"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.125rem', padding: '4px', borderRadius: '6px' }}>
-                {selected ? selected.emoji : '🙂'}
+                style={{
+                    display: 'flex', alignItems: 'center', gap: '0.375rem',
+                    background: mood ? 'oklch(0.50 0.10 170 / 0.10)' : 'var(--color-muted)',
+                    border: 'none', borderRadius: '9999px', cursor: 'pointer',
+                    padding: '0.3rem 0.625rem', fontSize: '0.8125rem', fontWeight: 600,
+                    color: mood ? 'var(--color-primary)' : 'var(--color-muted-fg)',
+                    transition: 'all 0.15s',
+                }}>
+                {selected ? <>{selected.emoji} {selected.label}</> : '🙂 Mood'}
             </button>
             {open && (
                 <>
                     <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-                    <div style={{
-                        position: 'absolute', left: 0, top: '2rem', zIndex: 50,
-                        background: 'var(--color-card)', border: '1px solid var(--color-border)',
-                        borderRadius: '0.75rem', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                        minWidth: '148px', overflow: 'hidden',
-                    }}>
+                    <div style={{ position: 'absolute', left: 0, top: '2.25rem', zIndex: 50, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', minWidth: '158px', overflow: 'hidden' }}>
                         {MOODS.map(m => (
                             <button key={m.value} onClick={() => { onChange(mood === m.value ? '' : m.value); setOpen(false) }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
-                                    width: '100%', padding: '0.5rem 0.75rem', border: 'none',
-                                    background: mood === m.value ? 'var(--color-muted)' : 'transparent',
-                                    cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
-                                    color: 'var(--color-foreground)', transition: 'background 0.1s',
-                                }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 0.75rem', border: 'none', background: mood === m.value ? 'oklch(0.50 0.10 170 / 0.10)' : 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, color: mood === m.value ? 'var(--color-primary)' : 'var(--color-foreground)', transition: 'background 0.1s' }}
                                 onMouseEnter={e => { if (mood !== m.value) e.currentTarget.style.background = 'var(--color-muted)' }}
                                 onMouseLeave={e => { if (mood !== m.value) e.currentTarget.style.background = 'transparent' }}>
                                 <span>{m.emoji}</span>{m.label}
                             </button>
                         ))}
-                        {mood && (
-                            <button onClick={() => { onChange(''); setOpen(false) }}
-                                style={{ width: '100%', padding: '0.4rem 0.75rem', border: 'none', borderTop: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-muted-fg)' }}>
-                                Clear mood
-                            </button>
-                        )}
+                        {mood && <button onClick={() => { onChange(''); setOpen(false) }} style={{ width: '100%', padding: '0.4rem 0.75rem', border: 'none', borderTop: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-muted-fg)' }}>Clear</button>}
                     </div>
                 </>
             )}
@@ -384,21 +331,18 @@ function MoodPicker({ mood, onChange }) {
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Options menu
-// ─────────────────────────────────────────────────────────────────────────────
 function OptionsMenu({ onDelete }) {
     const [open, setOpen] = useState(false)
     return (
         <div style={{ position: 'relative' }}>
-            <button onClick={() => setOpen(o => !o)} className="btn-icon" title="Options"><MoreHorizontal size={18} /></button>
+            <button onClick={() => setOpen(o => !o)} className="btn-icon" title="Options"><MoreHorizontal size={16} /></button>
             {open && (
                 <>
                     <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-                    <div style={{ position: 'absolute', right: 0, top: '2.25rem', zIndex: 50, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: '140px', overflow: 'hidden' }}>
-                        <button onClick={() => { setOpen(false); onDelete() }}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.875rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-destructive)', fontSize: '0.875rem', fontWeight: 500 }}>
-                            <Trash2 size={14} /> Delete
+                    <div style={{ position: 'absolute', right: 0, top: '2.25rem', zIndex: 50, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '0.75rem', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', minWidth: '130px', overflow: 'hidden' }}>
+                        <button onClick={() => { setOpen(false); onDelete() }} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.875rem', border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--color-destructive)', fontSize: '0.875rem', fontWeight: 500 }}>
+                            <Trash2 size={13} /> Delete
                         </button>
                     </div>
                 </>
@@ -408,26 +352,25 @@ function OptionsMenu({ onDelete }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Inline Editor (center panel)
+// Inline editor (NO title — content only)
 // ─────────────────────────────────────────────────────────────────────────────
 function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
-    const [title, setTitle] = useState('')
     const [body, setBody] = useState('')
     const [mood, setMood] = useState('')
     const [loading, setLoading] = useState(!isNew)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState(null)
     const [dirty, setDirty] = useState(false)
-    const [dateLabel, setDateLabel] = useState(format(new Date(), 'EEEE, MMMM d, yyyy'))
+    const [dateLabel, setDateLabel] = useState(format(new Date(), 'EEEE, MMMM d'))
 
     useEffect(() => {
-        if (isNew) { setTitle(''); setBody(''); setMood(''); setDirty(false); setLoading(false); setDateLabel(format(new Date(), 'EEEE, MMMM d, yyyy')); return }
+        if (isNew) { setBody(''); setMood(''); setDirty(false); setLoading(false); setDateLabel(format(new Date(), 'EEEE, MMMM d')); return }
         setLoading(true)
         getEntry(entryId)
             .then(e => {
-                const { title: t, mood: m, body: b } = unpackContent(e.content)
-                setTitle(t); setMood(m); setBody(b); setDirty(false)
-                setDateLabel(format(new Date(e.created_at), 'EEEE, MMMM d, yyyy'))
+                const { mood: m, body: b } = unpackContent(e.content)
+                setMood(m); setBody(b); setDirty(false)
+                setDateLabel(format(new Date(e.created_at), 'EEEE, MMMM d'))
             })
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
@@ -436,7 +379,7 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
     async function handleSave() {
         setSaving(true); setError(null)
         try {
-            const packed = packContent(title, mood, body)
+            const packed = packContent(mood, body)
             if (isNew) { const e = await createEntry(packed); setDirty(false); onSaved(e) }
             else { const e = await updateEntry(entryId, packed); setDirty(false); onSaved(e) }
         } catch (e) { setError(e.message) } finally { setSaving(false) }
@@ -456,29 +399,43 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
     return (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Top bar */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.5rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', fontWeight: 500 }}>{dateLabel}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.75rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0, gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-foreground)' }}>{dateLabel}</span>
                     <MoodPicker mood={mood} onChange={m => { setMood(m); setDirty(true) }} />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {error && <span style={{ fontSize: '0.8125rem', color: 'var(--color-destructive)', flexShrink: 0 }}>{error}</span>}
                     {!isNew && <OptionsMenu onDelete={handleDelete} />}
-                    {error && <span style={{ fontSize: '0.8125rem', color: 'var(--color-destructive)' }}>{error}</span>}
                     <button onClick={handleSave} disabled={saving || (!dirty && !isNew)} className="btn-primary"
-                        style={{ padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.875rem', opacity: (!dirty && !isNew) ? 0.45 : 1 }}>
-                        {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : isNew ? 'Save entry' : 'Update'}
+                        style={{ padding: '0.4375rem 1.25rem', borderRadius: '9999px', fontSize: '0.875rem', opacity: (!dirty && !isNew) ? 0.4 : 1 }}>
+                        {saving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : isNew ? 'Save' : 'Update'}
                     </button>
                 </div>
             </div>
+
             {/* Writing area */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '2.5rem 3rem' }}>
-                <input placeholder="Entry title…" value={title}
-                    onChange={e => { setTitle(e.target.value); setDirty(true) }}
-                    style={{ width: '100%', border: 'none', outline: 'none', padding: 0, fontFamily: 'var(--font-serif)', fontSize: '1.75rem', fontWeight: 700, color: 'var(--color-foreground)', background: 'transparent', marginBottom: '0.875rem', lineHeight: 1.25 }} />
-                <div style={{ height: '1px', background: 'var(--color-border)', marginBottom: '1.25rem' }} />
-                <textarea placeholder="Start writing…" value={body}
+            <div style={{ flex: 1, overflow: 'auto', padding: '2.5rem 4rem' }}>
+                <textarea
+                    autoFocus
+                    placeholder="What's on your mind today?"
+                    value={body}
                     onChange={e => { setBody(e.target.value); setDirty(true) }}
-                    style={{ width: '100%', minHeight: '55vh', border: 'none', outline: 'none', resize: 'none', padding: 0, fontSize: '1rem', lineHeight: 1.8, color: 'var(--color-foreground)', background: 'transparent', fontFamily: 'var(--font-sans)' }} />
+                    style={{
+                        width: '100%', minHeight: '65vh', border: 'none', outline: 'none',
+                        resize: 'none', padding: 0,
+                        fontSize: '1.0625rem', lineHeight: 1.85,
+                        color: 'var(--color-foreground)', background: 'transparent',
+                        fontFamily: 'var(--font-sans)',
+                    }}
+                />
+            </div>
+
+            {/* Word count */}
+            <div style={{ padding: '0.5rem 4rem', borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)' }}>
+                    {body.trim() ? body.trim().split(/\s+/).length : 0} words
+                </span>
             </div>
         </div>
     )
@@ -487,56 +444,71 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidebar entry row
 // ─────────────────────────────────────────────────────────────────────────────
-function SidebarEntry({ entry, selected, onClick }) {
-    const { title, mood } = unpackContent(entry.content)
+function SidebarEntry({ entry, selected, onClick, score }) {
+    const { mood } = unpackContent(entry.content)
     const moodObj = MOODS.find(m => m.value === mood)
-    const timeAgo = isToday(new Date(entry.created_at))
-        ? format(new Date(entry.created_at), 'HH:mm')
-        : formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })
+    const text = snippet(entry.content)
+
     return (
         <button onClick={onClick}
             style={{
-                display: 'flex', alignItems: 'flex-start', gap: '0.5rem',
-                width: '100%', padding: '0.625rem 0.875rem', border: 'none',
-                textAlign: 'left', cursor: 'pointer', transition: 'background 0.1s',
-                background: selected ? 'oklch(0.50 0.10 170 / 0.08)' : 'transparent',
-                borderLeft: selected ? '3px solid var(--color-primary)' : '3px solid transparent',
+                display: 'block', width: '100%', padding: '0.625rem 0.875rem',
+                border: 'none', textAlign: 'left', cursor: 'pointer',
+                background: selected ? 'oklch(0.50 0.10 170 / 0.09)' : 'transparent',
+                borderLeft: `3px solid ${selected ? 'var(--color-primary)' : 'transparent'}`,
+                transition: 'background 0.12s, border-color 0.12s',
             }}
             onMouseEnter={e => { if (!selected) e.currentTarget.style.background = 'var(--color-muted)' }}
             onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent' }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 600, fontSize: '0.8125rem', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: selected ? 'var(--color-primary)' : 'var(--color-foreground)' }}>
-                    {title || 'Untitled'}
-                </p>
-                <p style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)', margin: 0 }}>{timeAgo}</p>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: selected ? 'var(--color-primary)' : 'var(--color-muted-fg)' }}>
+                    {relativeDate(entry.created_at)}
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    {score != null && (
+                        <span style={{
+                            fontSize: '0.5625rem', fontWeight: 700, padding: '1px 5px',
+                            borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.12)',
+                            color: 'var(--color-primary)', letterSpacing: '0.03em',
+                        }}>
+                            {Math.round(score * 100)}%
+                        </span>
+                    )}
+                    {moodObj && <span style={{ fontSize: '0.8125rem' }}>{moodObj.emoji}</span>}
+                </div>
             </div>
-            {moodObj && <span style={{ fontSize: '0.9375rem', flexShrink: 0, marginTop: '2px' }}>{moodObj.emoji}</span>}
+
+            <p style={{
+                fontSize: '0.8125rem', color: selected ? 'var(--color-foreground)' : 'var(--color-muted-fg)',
+                margin: 0, lineHeight: 1.45,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                fontWeight: selected ? 500 : 400,
+            }}>
+                {text}
+            </p>
         </button>
     )
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Welcome panel (center, when nothing selected)
-// ─────────────────────────────────────────────────────────────────────────────
+// Welcome center
 function WelcomeCenter({ onNewEntry }) {
     return (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', textAlign: 'center' }}>
-            <img src="/journal-hero.png" alt="Journal" style={{ width: '160px', opacity: 0.8, marginBottom: '1.25rem' }} />
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
-                Select an entry to edit
-            </h2>
-            <p style={{ fontSize: '0.9375rem', color: 'var(--color-muted-fg)', lineHeight: 1.6, maxWidth: '18rem', margin: '0 0 1.5rem' }}>
-                Choose an entry from the sidebar or start a fresh one.
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', textAlign: 'center', background: 'var(--color-background)' }}>
+            <img src="/journal-hero.png" alt="Journal" style={{ width: '148px', opacity: 0.75, marginBottom: '1.25rem' }} />
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', fontWeight: 700, margin: '0 0 0.5rem' }}>Select an entry to edit</h2>
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-muted-fg)', lineHeight: 1.6, maxWidth: '17rem', margin: '0 0 1.5rem' }}>
+                Choose an entry from the sidebar or write something new.
             </p>
             <button onClick={onNewEntry} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Plus size={15} /> New entry
+                <Plus size={14} /> New entry
             </button>
         </div>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dashboard — three-panel layout
+// Dashboard — three-panel
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
     const { user } = useAuth()
@@ -547,21 +519,38 @@ export default function Dashboard() {
     const isNew = searchParams.get('new') === '1'
 
     const [entries, setEntries] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
+    const [loadingList, setLoadingList] = useState(true)
+    const [query, setQuery] = useState('')
+    const [searchResults, setSearchResults] = useState(null)   // null = not searching
+    const [searching, setSearching] = useState(false)
+    const debounceRef = useRef(null)
 
     const load = useCallback(() => {
-        setLoading(true)
-        getEntries().then(setEntries).catch(console.error).finally(() => setLoading(false))
+        setLoadingList(true)
+        getEntries().then(setEntries).catch(console.error).finally(() => setLoadingList(false))
     }, [])
-
     useEffect(() => { load() }, [load])
+
+    // Debounced semantic search
+    useEffect(() => {
+        clearTimeout(debounceRef.current)
+        if (!query.trim()) { setSearchResults(null); setSearching(false); return }
+        setSearching(true)
+        debounceRef.current = setTimeout(() => {
+            searchEntries(query, 10)
+                .then(results => setSearchResults(results))
+                .catch(() => setSearchResults([]))
+                .finally(() => setSearching(false))
+        }, 450)
+        return () => clearTimeout(debounceRef.current)
+    }, [query])
 
     async function signOut() { await supabase.auth.signOut(); navigate('/auth') }
 
-    const filtered = useMemo(() =>
-        entries.filter(e => !search || (e.content ?? '').toLowerCase().includes(search.toLowerCase()))
-        , [entries, search])
+    // What to show in sidebar list
+    const listItems = searchResults !== null
+        ? searchResults.map(r => ({ entry: r, score: r.score }))
+        : entries.map(e => ({ entry: e, score: null }))
 
     function selectEntry(id) { setSearchParams({ entry: id }) }
     function newEntry() { setSearchParams({ new: '1' }) }
@@ -575,9 +564,13 @@ export default function Dashboard() {
     return (
         <div style={{ display: 'flex', height: '100svh', background: 'var(--color-background)', overflow: 'hidden' }}>
 
-            {/* ── Left sidebar: entry list ── */}
-            <aside style={{ width: '260px', flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--color-border)', background: 'var(--color-card)', overflow: 'hidden' }}>
-                {/* Brand */}
+            {/* ── Left sidebar ── */}
+            <aside style={{
+                width: '256px', flexShrink: 0, display: 'flex', flexDirection: 'column',
+                borderRight: '1px solid var(--color-border)',
+                background: 'var(--color-card)', overflow: 'hidden',
+            }}>
+                {/* Brand row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 0.875rem 0.625rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)' }}>
                         <BookOpen size={17} />
@@ -590,36 +583,69 @@ export default function Dashboard() {
 
                 {/* New entry */}
                 <div style={{ padding: '0 0.75rem 0.625rem' }}>
-                    <button onClick={newEntry} className="btn-primary" style={{ width: '100%', borderRadius: '0.5rem', padding: '0.5rem 0', gap: '0.375rem', fontSize: '0.8125rem' }}>
+                    <button onClick={newEntry} className="btn-primary"
+                        style={{ width: '100%', borderRadius: '0.5rem', padding: '0.5rem 0', gap: '0.375rem', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Plus size={13} /> New entry
                     </button>
                 </div>
 
-                {/* Search */}
+                {/* Semantic search */}
                 <div style={{ padding: '0 0.75rem 0.5rem', position: 'relative' }}>
                     <Search size={12} style={{ position: 'absolute', left: '1.375rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted-fg)', pointerEvents: 'none' }} />
-                    <input className="input" style={{ paddingLeft: '2rem', fontSize: '0.8125rem', height: '2rem', borderRadius: '0.5rem' }}
-                        placeholder="Search…" value={search} onChange={e => setSearch(e.target.value)} />
+                    <input className="input"
+                        style={{ paddingLeft: '2rem', paddingRight: query ? '2rem' : '0.75rem', fontSize: '0.8125rem', height: '2rem', borderRadius: '0.5rem' }}
+                        placeholder="Search entries…"
+                        value={query}
+                        onChange={e => setQuery(e.target.value)}
+                    />
+                    {query && (
+                        <button onClick={() => { setQuery(''); setSearchResults(null) }}
+                            style={{ position: 'absolute', right: '1.375rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-muted-fg)', padding: 0, display: 'flex' }}>
+                            <X size={12} />
+                        </button>
+                    )}
                 </div>
+
+                {/* Search hint banner */}
+                {query && (
+                    <div style={{ margin: '0 0.75rem 0.375rem', padding: '0.3rem 0.625rem', borderRadius: '0.4rem', background: 'oklch(0.50 0.10 170 / 0.08)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        {searching
+                            ? <Loader2 size={10} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                            : <Search size={10} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />}
+                        <span style={{ fontSize: '0.625rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                            {searching ? 'Searching…' : searchResults ? `${searchResults.length} result${searchResults.length !== 1 ? 's' : ''} · similarity` : ''}
+                        </span>
+                    </div>
+                )}
 
                 {/* Entry list */}
                 <div style={{ flex: 1, overflowY: 'auto' }}>
-                    {loading && <div style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem' }}><Loader2 size={16} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} /></div>}
-                    {!loading && filtered.length === 0 && (
+                    {(loadingList || searching) && !listItems.length && (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '1.5rem' }}>
+                            <Loader2 size={16} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
+                        </div>
+                    )}
+                    {!loadingList && !searching && listItems.length === 0 && (
                         <div style={{ padding: '1.5rem 0.875rem', textAlign: 'center' }}>
                             <BookMarked size={22} style={{ color: 'var(--color-muted-fg)', margin: '0 auto 0.5rem' }} />
                             <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', lineHeight: 1.5, margin: 0 }}>
-                                {search ? 'No matches.' : 'No entries yet.'}
+                                {query ? 'No similar entries found.' : 'No entries yet.'}
                             </p>
                         </div>
                     )}
-                    {!loading && filtered.map(e => (
-                        <SidebarEntry key={e.id} entry={e} selected={e.id === selectedId} onClick={() => selectEntry(e.id)} />
+                    {listItems.map(({ entry, score }) => (
+                        <SidebarEntry
+                            key={entry.id}
+                            entry={entry}
+                            selected={entry.id === selectedId}
+                            onClick={() => selectEntry(entry.id)}
+                            score={score}
+                        />
                     ))}
                 </div>
 
                 {/* Bottom nav */}
-                <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.375rem 0.375rem 0.5rem' }}>
+                <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.375rem' }}>
                     {[
                         { label: 'Drift', path: '/drift', Icon: BarChart2 },
                         { label: 'Reports', path: '/reports', Icon: FileText },
@@ -634,17 +660,16 @@ export default function Dashboard() {
                 </div>
             </aside>
 
-            {/* ── Center: editor or welcome ── */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+            {/* ── Center ── */}
+            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0, background: 'var(--color-background)' }}>
                 {!selectedId && !isNew && <WelcomeCenter onNewEntry={newEntry} />}
                 {isNew && <InlineEditor key="new" isNew onSaved={handleSaved} onDeleted={handleDeleted} />}
                 {selectedId && <InlineEditor key={selectedId} entryId={selectedId} isNew={false} onSaved={handleSaved} onDeleted={handleDeleted} />}
             </div>
 
-            {/* ── Right: dashboard stats or entry insights ── */}
+            {/* ── Right panel ── */}
             {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
             {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
-
         </div>
     )
 }
