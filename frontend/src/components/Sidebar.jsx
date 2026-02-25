@@ -1,92 +1,103 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { listEntries, deleteEntry, searchEntries } from '../lib/api'
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function formatDate(iso) {
+function fmtDate(iso) {
     const d = new Date(iso)
     const now = new Date()
-    const diffDays = Math.floor((now - d) / 86400000)
-    if (diffDays === 0) return 'Today'
-    if (diffDays === 1) return 'Yesterday'
-    if (diffDays < 7) return d.toLocaleDateString('en-US', { weekday: 'long' })
+    if (d.toDateString() === now.toDateString()) return 'Today'
+    const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday'
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-function snippet(content, maxLen = 80) {
-    const text = content?.trim().replace(/\s+/g, ' ') ?? ''
-    return text.length <= maxLen ? text : text.slice(0, maxLen) + '…'
+function snippet(content) {
+    return content?.replace(/\n/g, ' ').trim().slice(0, 72) || 'Empty entry'
 }
 
 // ---------------------------------------------------------------------------
-// EntryRow
+// Entry row
 // ---------------------------------------------------------------------------
-function EntryRow({ entry, isActive, onSelect, onDelete, similarity }) {
-    async function handleDelete(e) {
-        e.stopPropagation()
-        if (!window.confirm('Delete this entry? This cannot be undone.')) return
-        try {
-            await deleteEntry(entry.id)
-            onDelete(entry.id)
-        } catch (err) {
-            alert(`Delete failed: ${err.message}`)
-        }
-    }
-
+function EntryRow({ entry, isActive, onClick, onDelete }) {
     return (
-        <button
-            onClick={() => onSelect(entry)}
+        <div
+            onClick={onClick}
             className={[
-                'group w-full text-left px-4 py-3 rounded-xl transition-all',
-                'flex flex-col gap-1 relative',
+                'group relative flex items-stretch cursor-pointer transition-colors rounded-xl mx-2 my-0.5',
                 isActive
-                    ? 'bg-violet-500/15 border border-violet-500/25'
-                    : 'hover:bg-white/5 border border-transparent',
+                    ? 'bg-[rgba(17,17,17,0.06)]'
+                    : 'hover:bg-[rgba(17,17,17,0.04)]',
             ].join(' ')}
         >
-            {/* Date + similarity badge + delete */}
-            <div className="flex items-center justify-between">
-                <span className={[
-                    'text-xs font-medium',
-                    isActive ? 'text-violet-300' : 'text-white/40',
-                ].join(' ')}>
-                    {formatDate(entry.created_at)}
-                </span>
-                <div className="flex items-center gap-1">
-                    {similarity != null && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300 font-mono">
-                            {Math.round(similarity * 100)}%
-                        </span>
-                    )}
-                    <button
-                        onClick={handleDelete}
-                        title="Delete entry"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded text-white/25 hover:text-red-400"
-                        aria-label="Delete entry"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                    </button>
-                </div>
+            {/* Active indicator dot */}
+            {isActive && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#FF6B4A] rounded-r-full ml-0.5" />}
+
+            <div className="flex-1 px-4 py-3 min-w-0">
+                <p className={`text-[13px] truncate leading-tight ${isActive ? 'font-semibold text-[#111111]' : 'font-medium text-[#111111]'}`}>
+                    {snippet(entry.content)}
+                </p>
+                <p className="text-[11px] text-[rgba(17,17,17,0.45)] mt-1">{fmtDate(entry.created_at)}</p>
             </div>
 
-            {/* Content snippet */}
-            <p className={[
-                'text-xs leading-relaxed line-clamp-2',
-                isActive ? 'text-white/70' : 'text-white/30',
-            ].join(' ')}>
-                {snippet(entry.content) || <em className="italic">Empty entry</em>}
-            </p>
+            <button
+                onClick={e => { e.stopPropagation(); onDelete(entry.id) }}
+                className="opacity-0 group-hover:opacity-100 px-3 flex items-center text-[rgba(17,17,17,0.35)] hover:text-red-500 transition-all"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        </div>
+    )
+}
 
-            {/* Mood score pill */}
-            {entry.mood_score != null && (
-                <span className="text-[10px] text-white/30 mt-0.5">
-                    Mood {entry.mood_score.toFixed(1)}
-                </span>
-            )}
+// ---------------------------------------------------------------------------
+// Search result row
+// ---------------------------------------------------------------------------
+function SearchRow({ entry, isActive, onClick }) {
+    const pct = entry.similarity != null ? Math.round(entry.similarity * 100) : null
+    return (
+        <div
+            onClick={onClick}
+            className={['group flex items-stretch cursor-pointer transition-colors rounded-xl mx-2 my-0.5', isActive ? 'bg-[rgba(17,17,17,0.06)]' : 'hover:bg-[rgba(17,17,17,0.04)]'].join(' ')}
+        >
+            <div className="flex-1 px-4 py-3 min-w-0">
+                <p className="text-[13px] font-medium text-[#111111] truncate">{snippet(entry.content)}</p>
+                <div className="flex items-center justify-between mt-1">
+                    <p className="text-[11px] text-[rgba(17,17,17,0.45)]">{fmtDate(entry.created_at)}</p>
+                    {pct != null && (
+                        <span className="text-[10px] px-2 py-0.5 bg-[#F0F0F0] text-[rgba(17,17,17,0.6)] rounded-full font-semibold">
+                            {pct}%
+                        </span>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// ---------------------------------------------------------------------------
+// Nav item — minimal Amplemarket style
+// ---------------------------------------------------------------------------
+function NavItem({ label, icon, path, currentPath, onClick }) {
+    const isActive = currentPath === path
+    return (
+        <button
+            onClick={onClick}
+            className={[
+                'flex items-center gap-3 w-full text-left px-3 py-2.5 rounded-xl transition-all text-sm',
+                isActive
+                    ? 'bg-[rgba(17,17,17,0.07)] text-[#111111] font-semibold'
+                    : 'text-[rgba(17,17,17,0.6)] hover:bg-[rgba(17,17,17,0.04)] hover:text-[#111111]',
+            ].join(' ')}
+        >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={isActive ? 2.5 : 2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d={icon} />
+            </svg>
+            {label}
         </button>
     )
 }
@@ -94,242 +105,122 @@ function EntryRow({ entry, isActive, onSelect, onDelete, similarity }) {
 // ---------------------------------------------------------------------------
 // Sidebar
 // ---------------------------------------------------------------------------
-/**
- * Sidebar — scrollable entry history with debounced semantic search.
- *
- * Props:
- *   activeEntryId        — id of the entry currently open in the editor
- *   onSelectEntry(entry) — called when user clicks an entry row
- *   onNewEntry()         — called when user clicks "New Entry"
- *   onEntryDeleted(id)   — called after a successful delete
- *   refreshTick          — increment to trigger a list refresh
- */
-export default function Sidebar({
-    activeEntryId,
-    onSelectEntry,
-    onNewEntry,
-    onEntryDeleted,
-    refreshTick = 0,
-}) {
+export default function Sidebar({ activeEntryId, onSelectEntry, onNewEntry, onEntryDeleted, refreshTick = 0 }) {
     const navigate = useNavigate()
     const { pathname } = useLocation()
+
     const [entries, setEntries] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
-
-    // Search state
     const [query, setQuery] = useState('')
-    const [searchResults, setSearchResults] = useState(null)   // null = not searching
+    const [results, setResults] = useState([])
     const [searching, setSearching] = useState(false)
-    const [searchError, setSearchError] = useState(null)
     const debounceRef = useRef(null)
+    const isSearchMode = query.trim().length > 0
 
-    // Fetch / refresh list whenever refreshTick changes (and when not searching)
     useEffect(() => {
-        let cancelled = false
         setLoading(true)
         listEntries()
-            .then((data) => { if (!cancelled) { setEntries(data); setLoading(false) } })
-            .catch((err) => { if (!cancelled) { setError(err.message); setLoading(false) } })
-        return () => { cancelled = true }
+            .then(data => { setEntries(data); setLoading(false) })
+            .catch(err => { setError(err.message); setLoading(false) })
     }, [refreshTick])
 
-    // Debounced search — fires 500ms after the user stops typing
-    useEffect(() => {
-        clearTimeout(debounceRef.current)
-
-        if (!query.trim()) {
-            setSearchResults(null)
-            setSearchError(null)
-            return
-        }
-
+    const runSearch = useCallback(q => {
         setSearching(true)
-        debounceRef.current = setTimeout(async () => {
-            try {
-                const results = await searchEntries(query.trim())
-                setSearchResults(results)
-                setSearchError(null)
-            } catch (err) {
-                setSearchError(err.message)
-                setSearchResults([])
-            } finally {
-                setSearching(false)
-            }
-        }, 500)
+        searchEntries(q).then(data => { setResults(data); setSearching(false) }).catch(() => setSearching(false))
+    }, [])
 
-        return () => clearTimeout(debounceRef.current)
-    }, [query])
-
-    function handleDelete(id) {
-        setEntries((prev) => prev.filter((e) => e.id !== id))
-        if (searchResults) setSearchResults((prev) => prev.filter((e) => e.id !== id))
-        onEntryDeleted(id)
+    function handleQueryChange(e) {
+        const q = e.target.value; setQuery(q)
+        clearTimeout(debounceRef.current)
+        if (q.trim()) debounceRef.current = setTimeout(() => runSearch(q.trim()), 500)
     }
 
-    function clearSearch() {
-        setQuery('')
-        setSearchResults(null)
-        setSearchError(null)
+    async function handleDelete(id) {
+        try { await deleteEntry(id); setEntries(prev => prev.filter(e => e.id !== id)); onEntryDeleted?.(id) }
+        catch (err) { console.error(err) }
     }
 
-    const isSearchMode = query.trim().length > 0
-    const displayEntries = isSearchMode ? (searchResults ?? []) : entries
     const isLoading = isSearchMode ? searching : loading
+    const display = isSearchMode ? results : entries
 
     return (
-        <aside className="flex flex-col w-72 shrink-0 border-r border-white/5 bg-white/[0.02] h-full">
+        <aside className="flex flex-col w-64 shrink-0 bg-[#F6F5F3] border-r border-[rgba(17,17,17,0.07)]">
             {/* Header */}
-            <div className="px-4 pt-5 pb-3 flex items-center justify-between">
-                <span className="text-xs font-semibold text-white/30 uppercase tracking-widest">
-                    {isSearchMode ? 'Search' : 'Entries'}
-                </span>
-                {!isSearchMode && (
-                    <button
-                        onClick={onNewEntry}
-                        className="flex items-center gap-1 text-xs text-violet-400 hover:text-violet-300 transition-colors font-medium"
-                    >
-                        <span className="text-base leading-none">+</span>
-                        New
-                    </button>
-                )}
+            <div className="px-4 pt-5 pb-3">
+                {/* New entry */}
+                <button
+                    onClick={onNewEntry}
+                    className="w-full flex items-center gap-2.5 h-10 bg-[#111111] hover:bg-[#2a2a2a] text-white text-sm font-semibold rounded-xl px-4 transition-colors mb-4"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                    </svg>
+                    New entry
+                </button>
+
+                {/* Nav */}
+                <nav className="space-y-0.5">
+                    <NavItem label="Journal" path="/dashboard" currentPath={pathname} onClick={() => navigate('/dashboard')}
+                        icon="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2m0 0V4a2 2 0 012-2h4a2 2 0 012 2v2M9 12h6m-6 4h6" />
+                    <NavItem label="Drift" path="/drift" currentPath={pathname} onClick={() => navigate('/drift')}
+                        icon="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    <NavItem label="Reports" path="/reports" currentPath={pathname} onClick={() => navigate('/reports')}
+                        icon="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </nav>
             </div>
 
-            {/* Search input */}
-            <div className="px-3 pb-3">
-                <div className="relative">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/20 pointer-events-none"
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round"
-                            d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            {/* Search */}
+            <div className="px-4 py-3 border-t border-b border-[rgba(17,17,17,0.06)]">
+                <div className="flex items-center gap-2 bg-white border border-[rgba(17,17,17,0.10)] rounded-lg px-3 py-2 shadow-[0_1px_4px_rgba(17,17,17,0.06)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5 text-[rgba(17,17,17,0.35)] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                     <input
-                        type="text"
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Search memories…"
-                        aria-label="Semantic search"
-                        className={[
-                            'w-full bg-white/5 rounded-lg pl-8 pr-7 py-2 text-xs text-white/60',
-                            'placeholder-white/15 border outline-none transition-all',
-                            query
-                                ? 'border-violet-500/30 bg-violet-500/5'
-                                : 'border-white/5 focus:border-white/15',
-                        ].join(' ')}
+                        type="text" value={query} onChange={handleQueryChange}
+                        placeholder="Search entries…"
+                        className="flex-1 bg-transparent text-xs text-[#111111] placeholder-[rgba(17,17,17,0.35)] focus:outline-none"
                     />
-                    {query && (
-                        <button
-                            onClick={clearSearch}
-                            aria-label="Clear search"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/50 transition-colors"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    {isSearchMode && (
+                        <button onClick={() => { setQuery(''); setResults([]) }} className="text-[rgba(17,17,17,0.35)] hover:text-[#FF6B4A] transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     )}
                 </div>
-                {isSearchMode && !searching && searchResults && (
-                    <p className="text-[10px] text-white/20 mt-1.5 ml-1">
-                        {searchResults.length === 0
-                            ? 'No similar entries found'
-                            : `${searchResults.length} similar ${searchResults.length === 1 ? 'entry' : 'entries'}`}
-                    </p>
-                )}
             </div>
 
-            {/* List */}
-            <div className="flex-1 overflow-y-auto px-3 pb-6 space-y-1">
-                {isLoading && (
-                    <div className="space-y-2 px-1 pt-2">
-                        {[...Array(isSearchMode ? 3 : 4)].map((_, i) => (
-                            <div key={i} className="rounded-xl p-3 bg-white/5 animate-pulse">
-                                <div className="h-2.5 w-24 bg-white/10 rounded mb-2" />
-                                <div className="h-2 w-full bg-white/5 rounded mb-1" />
-                                <div className="h-2 w-3/4 bg-white/5 rounded" />
-                            </div>
-                        ))}
+            {/* Section label */}
+            <div className="px-4 py-3">
+                <p className="text-[10px] font-semibold text-[rgba(17,17,17,0.4)] uppercase tracking-widest">
+                    {isSearchMode ? 'Results' : 'Entries'}
+                </p>
+            </div>
+
+            {/* Entry list */}
+            <div className="flex-1 overflow-y-auto pb-4">
+                {isLoading && [...Array(5)].map((_, i) => (
+                    <div key={i} className="mx-2 px-4 py-3 rounded-xl animate-pulse">
+                        <div className="h-3 bg-[rgba(17,17,17,0.08)] rounded-lg w-3/4 mb-2" />
+                        <div className="h-2.5 bg-[rgba(17,17,17,0.06)] rounded-lg w-1/3" />
                     </div>
-                )}
-
-                {!isLoading && (searchError || error) && (
-                    <p className="text-xs text-red-400 px-2 pt-4">
-                        {searchError || error}
-                    </p>
-                )}
-
-                {!isLoading && !searchError && !error && displayEntries.length === 0 && (
-                    <div className="pt-8 text-center px-4">
-                        <p className="text-white/20 text-xs leading-relaxed">
-                            {isSearchMode
-                                ? 'Try a different phrase to find related memories.'
-                                : <>No entries yet.<br />Start writing to see them here.</>}
-                        </p>
-                    </div>
-                )}
-
-                {!isLoading && !searchError && !error && displayEntries.map((entry) => (
-                    <EntryRow
-                        key={entry.id}
-                        entry={entry}
-                        isActive={entry.id === activeEntryId}
-                        onSelect={onSelectEntry}
-                        onDelete={handleDelete}
-                        similarity={isSearchMode ? entry.similarity : null}
-                    />
                 ))}
-            </div>
 
-            {/* Bottom nav — Journal / Drift toggle */}
-            <nav className="mt-auto border-t border-white/5 px-3 py-3 grid grid-cols-3 gap-1">
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className={[
-                        'flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium transition-all',
-                        pathname === '/dashboard'
-                            ? 'bg-violet-500/15 text-violet-300'
-                            : 'text-white/25 hover:bg-white/5 hover:text-white/50',
-                    ].join(' ')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
-                    </svg>
-                    Journal
-                </button>
-                <button
-                    onClick={() => navigate('/drift')}
-                    className={[
-                        'flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium transition-all',
-                        pathname === '/drift'
-                            ? 'bg-violet-500/15 text-violet-300'
-                            : 'text-white/25 hover:bg-white/5 hover:text-white/50',
-                    ].join(' ')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16" />
-                    </svg>
-                    Drift
-                </button>
-                <button
-                    onClick={() => navigate('/reports')}
-                    className={[
-                        'flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium transition-all',
-                        pathname === '/reports'
-                            ? 'bg-violet-500/15 text-violet-300'
-                            : 'text-white/25 hover:bg-white/5 hover:text-white/50',
-                    ].join(' ')}
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Reports
-                </button>
-            </nav>
+                {!isLoading && error && <p className="text-xs text-red-500 px-4 py-6 text-center">{error}</p>}
+
+                {!isLoading && !error && display.length === 0 && (
+                    <p className="text-xs text-[rgba(17,17,17,0.4)] text-center px-4 py-8 leading-relaxed">
+                        {isSearchMode ? 'No results found.' : 'No entries yet.\nClick "New entry" to start.'}
+                    </p>
+                )}
+
+                {!isLoading && !error && (
+                    isSearchMode
+                        ? results.map(e => <SearchRow key={e.id} entry={e} isActive={activeEntryId === e.id} onClick={() => onSelectEntry(e)} />)
+                        : entries.map(e => <EntryRow key={e.id} entry={e} isActive={activeEntryId === e.id} onClick={() => onSelectEntry(e)} onDelete={handleDelete} />)
+                )}
+            </div>
         </aside>
     )
 }
-
