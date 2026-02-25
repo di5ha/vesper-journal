@@ -35,7 +35,7 @@ export default function Auth() {
 // ─────────────────────────────────────────────────────────────────────────────
 function LandingCard({ onLogin, onSignup }) {
     return (
-        <div style={{ borderRadius: '1.5rem', overflow: 'hidden', background: 'var(--color-card)', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
+        <div style={{ borderRadius: '1.5rem', overflow: 'hidden', background: 'rgba(253,251,248,0.80)', backdropFilter: 'blur(24px) saturate(1.4)', WebkitBackdropFilter: 'blur(24px) saturate(1.4)', boxShadow: '0 8px 40px rgba(0,0,0,0.10)' }}>
             {/* Illustration */}
             <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem 2rem 0' }}>
                 <div style={{ width: '224px', height: '224px', overflow: 'hidden' }}>
@@ -115,7 +115,7 @@ function LoginCard({ onSignup, onBack }) {
             </div>
 
             {/* Form card */}
-            <div className="card" style={{ padding: '1.5rem' }}>
+            <div className="card" style={{ padding: '1.5rem', background: 'rgba(253,251,248,0.82)', backdropFilter: 'blur(22px) saturate(1.3)', WebkitBackdropFilter: 'blur(22px) saturate(1.3)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div>
                         <label className="label" htmlFor="email">Email</label>
@@ -204,7 +204,7 @@ function SignupCard({ onLogin, onBack }) {
             </div>
 
             {/* Form card */}
-            <div className="card" style={{ padding: '1.5rem' }}>
+            <div className="card" style={{ padding: '1.5rem', background: 'rgba(253,251,248,0.82)', backdropFilter: 'blur(22px) saturate(1.3)', WebkitBackdropFilter: 'blur(22px) saturate(1.3)', boxShadow: '0 8px 40px rgba(0,0,0,0.09)' }}>
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                     <div>
                         <label className="label" htmlFor="su-email">Email</label>

@@ -108,9 +108,12 @@ function DashboardStatsPanel({ entryCount }) {
 
     return (
         <aside style={{
+            position: 'relative', zIndex: 1,
             width: '256px', flexShrink: 0, overflowY: 'auto',
-            borderLeft: '1px solid var(--color-border)',
-            background: 'var(--color-card)',
+            borderLeft: '1px solid rgba(200,195,185,0.5)',
+            background: 'rgba(253,251,248,0.78)',
+            backdropFilter: 'blur(22px) saturate(1.3)',
+            WebkitBackdropFilter: 'blur(22px) saturate(1.3)',
         }}>
             <div style={{ padding: '1rem 1rem 0.5rem' }}>
                 <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: 0 }}>Dashboard</p>
@@ -224,7 +227,8 @@ function EntryInsightPanel({ entryId }) {
     const { mood_score, themes = [], distortions = [], observation, analyzed } = analysis ?? {}
 
     return (
-        <aside style={{ width: '256px', flexShrink: 0, overflowY: 'auto', borderLeft: '1px solid var(--color-border)', background: 'var(--color-card)' }}>
+        <aside style={{ position: 'relative', zIndex: 1, width: '256px', flexShrink: 0, overflowY: 'auto', borderLeft: '1px solid rgba(200,195,185,0.5)', background: 'rgba(253,251,248,0.78)', backdropFilter: 'blur(22px) saturate(1.3)', WebkitBackdropFilter: 'blur(22px) saturate(1.3)' }}>
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', padding: '1rem 0.875rem 0.5rem' }}>
                 <Sparkles size={13} style={{ color: 'var(--color-primary)' }} />
                 <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: 0 }}>Insights</p>
@@ -562,7 +566,7 @@ export default function Dashboard() {
     function handleDeleted() { setSearchParams({}); load() }
 
     return (
-        <div style={{ display: 'flex', height: '100svh', background: 'var(--color-background)', overflow: 'hidden' }}>
+        <div style={{ position: 'relative', display: 'flex', height: '100svh', overflow: 'hidden', background: 'oklch(0.975 0.005 75)' }}>
 
             {/* ── Blob background ── */}
             <div className="blob-scene">
@@ -575,10 +579,15 @@ export default function Dashboard() {
 
             {/* ── Left sidebar ── */}
             <aside style={{
+                position: 'relative', zIndex: 1,
                 width: '256px', flexShrink: 0, display: 'flex', flexDirection: 'column',
-                borderRight: '1px solid var(--color-border)',
-                background: 'var(--color-card)', overflow: 'hidden',
+                borderRight: '1px solid rgba(200,195,185,0.5)',
+                background: 'rgba(253,251,248,0.75)',
+                backdropFilter: 'blur(22px) saturate(1.3)',
+                WebkitBackdropFilter: 'blur(22px) saturate(1.3)',
+                overflow: 'hidden',
             }}>
+
                 {/* Brand row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 0.875rem 0.625rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)' }}>
@@ -670,7 +679,7 @@ export default function Dashboard() {
             </aside>
 
             {/* ── Center ── */}
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0, background: 'var(--color-background)' }}>
+            <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0, background: 'rgba(250,248,244,0.60)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
                 {!selectedId && !isNew && <WelcomeCenter onNewEntry={newEntry} />}
                 {isNew && <InlineEditor key="new" isNew onSaved={handleSaved} onDeleted={handleDeleted} />}
                 {selectedId && <InlineEditor key={selectedId} entryId={selectedId} isNew={false} onSaved={handleSaved} onDeleted={handleDeleted} />}
@@ -682,3 +691,4 @@ export default function Dashboard() {
         </div>
     )
 }
+

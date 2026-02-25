@@ -187,22 +187,20 @@
     border-radius: 9999px;
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   BLOB BACKGROUND SYSTEM
-   Five independently drifting radial-gradient orbs — teal/sage/blush/amber
-   adapted to the V0 warm-off-white palette.
+/* ───────────────────────────────────────────────────────────────────────
+   BLOB BACKGROUND SYSTEM — V0 teal/sage/amber/blush palette
+   High opacity so blobs show through glass panels.
+   blob-scene is position:absolute inside a position:relative root.
    ──────────────────────────────────────────────────────────────────────── */
 
-/* Container — sits behind everything */
 .blob-scene {
-    position: fixed;
+    position: absolute;
     inset: 0;
-    z-index: -1;
     overflow: hidden;
     pointer-events: none;
+    z-index: 0;
 }
 
-/* Shared blob base */
 .blob {
     position: absolute;
     border-radius: 50%;
@@ -210,60 +208,68 @@
     pointer-events: none;
 }
 
-/* ── Teal — primary brand, slow wide drift ──────────────────────────────── */
+/* ── Teal — primary brand ────────────────────────────────────────── */
 .blob-teal {
-    background: radial-gradient(circle at 45% 50%,
-            oklch(0.50 0.10 170) 0%,
-            oklch(0.65 0.12 175) 40%,
-            transparent 70%);
-    filter: blur(120px);
-    opacity: 0.20;
+    background: radial-gradient(circle at 40% 50%,
+            oklch(0.55 0.18 170) 0%,
+            oklch(0.68 0.14 175) 40%,
+            transparent 68%);
+    filter: blur(70px);
+    opacity: 0.55;
     animation: blobA 22s ease-in-out infinite;
 }
 
-/* ── Sage green — cooler, medium pace ──────────────────────────────────── */
+/* ── Sage green ──────────────────────────────────────────────────── */
 .blob-sage {
     background: radial-gradient(circle at 55% 45%,
-            oklch(0.60 0.10 145) 0%,
-            oklch(0.70 0.08 155) 45%,
+            oklch(0.62 0.16 145) 0%,
+            oklch(0.72 0.12 155) 45%,
             transparent 70%);
-    filter: blur(140px);
-    opacity: 0.16;
+    filter: blur(85px);
+    opacity: 0.48;
     animation: blobB 28s ease-in-out infinite;
 }
 
-/* ── Warm amber — subtle warmth, quick accent ───────────────────────────── */
+/* ── Warm amber ──────────────────────────────────────────────────── */
 .blob-amber {
     background: radial-gradient(circle at 50% 50%,
-            oklch(0.78 0.14 75) 0%,
-            oklch(0.85 0.12 65) 50%,
+            oklch(0.80 0.18 75) 0%,
+            oklch(0.87 0.14 65) 50%,
             transparent 72%);
-    filter: blur(100px);
-    opacity: 0.18;
+    filter: blur(60px);
+    opacity: 0.55;
     animation: blobC 16s ease-in-out infinite reverse;
 }
 
-/* ── Blush / rose — soft warmth top edge ─────────────────────────────────── */
+/* ── Blush / rose ──────────────────────────────────────────────────── */
 .blob-blush {
     background: radial-gradient(circle at 48% 40%,
-            oklch(0.78 0.08 15) 0%,
-            oklch(0.84 0.07 20) 50%,
+            oklch(0.75 0.14 15) 0%,
+            oklch(0.82 0.10 20) 50%,
             transparent 70%);
-    filter: blur(130px);
-    opacity: 0.13;
+    filter: blur(80px);
+    opacity: 0.45;
     animation: blobD 32s ease-in-out infinite;
 }
 
-/* ── Teal-deep — dark anchor, very slow ─────────────────────────────────── */
+/* ── Deep teal anchor ────────────────────────────────────────────────── */
 .blob-deep {
     background: radial-gradient(circle at 50% 60%,
-            oklch(0.40 0.12 170) 0%,
-            oklch(0.50 0.10 165) 55%,
+            oklch(0.42 0.18 170) 0%,
+            oklch(0.52 0.14 165) 55%,
             transparent 72%);
-    filter: blur(160px);
-    opacity: 0.10;
+    filter: blur(90px);
+    opacity: 0.35;
     animation: blobE 38s ease-in-out infinite reverse;
 }
+
+/* ── Glass-panel utility (frosted effect over blobs) ───────────────── */
+.glass-panel {
+    background: rgba(253, 251, 248, 0.72) !important;
+    backdrop-filter: blur(20px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
+}
+
 
 /* ── Keyframes — each blob has a completely unique drift path ────────────── */
 @keyframes blobA {
