@@ -145,7 +145,7 @@ export default function Sidebar({ activeEntryId, onSelectEntry, onNewEntry, onEn
     const display = isSearchMode ? results : entries
 
     return (
-        <aside className="flex flex-col w-64 shrink-0 bg-[#F6F5F3] border-r border-[rgba(17,17,17,0.07)]">
+        <aside className="flex flex-col w-64 shrink-0 bg-white/70 backdrop-blur-xl border-r border-white/40">
             {/* Header */}
             <div className="px-4 pt-5 pb-3">
                 {/* New entry */}

@@ -35,12 +35,34 @@ export default function Auth() {
 
     return (
         <div className="relative min-h-screen bg-[#F6F5F3] flex items-center justify-center overflow-hidden px-6 py-12">
-            {/* Blobs — matching amplemarket hero */}
-            <div className="blob-orange w-[480px] h-[480px] -left-40 bottom-0 pointer-events-none" />
-            <div className="blob-purple w-[400px] h-[400px] right-10 bottom-20 pointer-events-none" />
 
-            {/* Glassmorphism card */}
-            <div className="relative z-10 w-full max-w-md bg-white/70 backdrop-blur-xl border border-[rgba(17,17,17,0.10)] rounded-2xl p-10 shadow-[0_8px_48px_rgba(17,17,17,0.08)]">
+            {/* ══════════════════════════════════════════════════════════════
+                BLOB LAYER — 5 overlapping animated orbs
+            ══════════════════════════════════════════════════════════════ */}
+
+            {/* Orange — bottom-left corner, dominant, large */}
+            <div className="blob blob-orange w-[640px] h-[640px]"
+                style={{ bottom: '-80px', left: '-120px' }} />
+
+            {/* Purple — centre-right, drifts across mid-screen */}
+            <div className="blob blob-purple w-[580px] h-[580px]"
+                style={{ top: '10%', right: '-60px' }} />
+
+            {/* Yellow accent — top-left, small & bright */}
+            <div className="blob blob-yellow w-[280px] h-[280px]"
+                style={{ top: '8%', left: '12%' }} />
+
+            {/* Teal — very large, sits bottom-right, atmospheric depth */}
+            <div className="blob blob-teal w-[700px] h-[700px]"
+                style={{ bottom: '-160px', right: '-200px' }} />
+
+            {/* Pink — top-right corner, small accent */}
+            <div className="blob blob-pink w-[240px] h-[240px]"
+                style={{ top: '-40px', right: '18%' }} />
+
+            {/* ── Glass card ─────────────────────────────────────────────── */}
+            <div className="relative z-10 w-full max-w-md bg-white/65 backdrop-blur-2xl border border-white/60 rounded-2xl p-10 shadow-[0_16px_64px_rgba(17,17,17,0.12),0_2px_8px_rgba(17,17,17,0.06)]">
+
                 {/* Logo */}
                 <div className="flex items-center gap-2.5 mb-10">
                     <div className="w-7 h-7 bg-[#111111] rounded-md flex items-center justify-center">
@@ -60,26 +82,23 @@ export default function Auth() {
                 </p>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Email */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-[#111111] uppercase tracking-wide">Email</label>
                         <input
                             type="email" required value={email} onChange={e => setEmail(e.target.value)}
                             placeholder="you@example.com"
-                            className="h-12 bg-white border border-[rgba(17,17,17,0.15)] rounded-lg px-4 text-sm text-[#111111] placeholder-[rgba(17,17,17,0.35)] focus:outline-none focus:border-[#111111] focus:ring-0 transition-colors"
+                            className="h-12 bg-white/80 border border-[rgba(17,17,17,0.15)] rounded-lg px-4 text-sm text-[#111111] placeholder-[rgba(17,17,17,0.35)] focus:outline-none focus:border-[#111111] transition-colors backdrop-blur-sm"
                         />
                     </div>
-                    {/* Password */}
                     <div className="flex flex-col gap-1.5">
                         <label className="text-xs font-semibold text-[#111111] uppercase tracking-wide">Password</label>
                         <input
                             type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="h-12 bg-white border border-[rgba(17,17,17,0.15)] rounded-lg px-4 text-sm text-[#111111] placeholder-[rgba(17,17,17,0.35)] focus:outline-none focus:border-[#111111] focus:ring-0 transition-colors"
+                            className="h-12 bg-white/80 border border-[rgba(17,17,17,0.15)] rounded-lg px-4 text-sm text-[#111111] placeholder-[rgba(17,17,17,0.35)] focus:outline-none focus:border-[#111111] transition-colors backdrop-blur-sm"
                         />
                     </div>
 
-                    {/* Error / info */}
                     {error && (
                         <p className={`text-xs rounded-lg px-3 py-2.5 leading-relaxed ${error.isInfo
                                 ? 'bg-[#F0F7FF] text-[#4A90E2] border border-[#4A90E2]/20'
@@ -89,10 +108,9 @@ export default function Auth() {
                         </p>
                     )}
 
-                    {/* Submit */}
                     <button
                         type="submit" disabled={loading}
-                        className="w-full h-12 mt-1 bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-40 text-white font-semibold text-sm rounded-lg transition-colors"
+                        className="w-full h-12 mt-1 bg-[#111111] hover:bg-[#2a2a2a] disabled:opacity-40 text-white font-semibold text-sm rounded-lg transition-colors shadow-[0_4px_16px_rgba(17,17,17,0.25)]"
                     >
                         {loading
                             ? (isSignup ? 'Creating account…' : 'Signing in…')
