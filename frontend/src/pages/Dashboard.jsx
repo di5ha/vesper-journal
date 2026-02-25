@@ -310,10 +310,40 @@ export default function Dashboard() {
                 )}
             </main>
 
-            {/* FAB — new entry */}
+            {/* ── Bottom tab bar ── */}
+            <nav style={{
+                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+                background: 'oklch(0.995 0.002 75 / 0.95)',
+                backdropFilter: 'blur(12px)',
+                borderTop: '1px solid var(--color-border)',
+                display: 'flex', justifyContent: 'center',
+            }}>
+                <div style={{ display: 'flex', gap: 0, maxWidth: '32rem', width: '100%' }}>
+                    {[
+                        { label: 'Journal', path: '/dashboard', active: true },
+                        { label: 'Drift', path: '/drift', active: false },
+                        { label: 'Reports', path: '/reports', active: false },
+                    ].map(tab => (
+                        <button key={tab.path}
+                            onClick={() => navigate(tab.path)}
+                            style={{
+                                flex: 1, padding: '0.875rem 0 0.6rem', border: 'none', background: 'transparent',
+                                cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
+                                fontSize: '0.6875rem', fontWeight: 600,
+                                color: tab.active ? 'var(--color-primary)' : 'var(--color-muted-fg)',
+                                borderTop: tab.active ? '2px solid var(--color-primary)' : '2px solid transparent',
+                                transition: 'color 0.15s',
+                            }}>
+                            {tab.label}
+                        </button>
+                    ))}
+                </div>
+            </nav>
+
+            {/* FAB — new entry (sits above the tab bar) */}
             <button onClick={() => navigate('/journal/new')} aria-label="New entry"
                 style={{
-                    position: 'fixed', bottom: '1.5rem', right: '1.5rem', zIndex: 50,
+                    position: 'fixed', bottom: '4.25rem', right: '1.25rem', zIndex: 50,
                     width: '3.5rem', height: '3.5rem',
                     borderRadius: '9999px', border: 'none', cursor: 'pointer',
                     background: 'var(--color-primary)', color: 'var(--color-primary-fg)',

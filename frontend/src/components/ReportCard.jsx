@@ -1,70 +1,59 @@
 import { useState } from 'react'
 import { downloadReportPdf } from '../lib/api'
+import { Download } from 'lucide-react'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', {
-        month: 'long', day: 'numeric', year: 'numeric',
-    })
+    return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 function emotionColor(emotion) {
     const e = (emotion || '').toLowerCase()
-    if (/anxi|stress|fear|panic/.test(e)) return 'text-red-400'
-    if (/sad|grief|low|depress/.test(e)) return 'text-blue-400'
-    if (/hope|joy|content|calm/.test(e)) return 'text-emerald-400'
-    if (/anger|frustrat/.test(e)) return 'text-orange-400'
-    return 'text-violet-300'
+    if (/anxi|stress|fear|panic/.test(e)) return '#e97b5a'   // coral
+    if (/sad|grief|low|depress/.test(e)) return '#5a87c4'   // blue
+    if (/hope|joy|content|calm/.test(e)) return 'var(--color-primary)'  // teal
+    if (/anger|frustrat/.test(e)) return '#e9a25a'   // amber
+    return 'var(--color-primary)'
 }
 
-// ---------------------------------------------------------------------------
-// ReportCard
-// ---------------------------------------------------------------------------
 export default function ReportCard({ report }) {
     const [downloading, setDownloading] = useState(false)
     const [dlError, setDlError] = useState(null)
 
     async function handleDownload() {
-        setDownloading(true)
-        setDlError(null)
-        try {
-            await downloadReportPdf(report.id, report.week_start)
-        } catch (err) {
-            setDlError(err.message)
-        } finally {
-            setDownloading(false)
-        }
+        setDownloading(true); setDlError(null)
+        try { await downloadReportPdf(report.id, report.week_start) }
+        catch (e) { setDlError(e.message) }
+        finally { setDownloading(false) }
     }
 
-    const colorClass = emotionColor(report.dominant_emotion)
+    const color = emotionColor(report.dominant_emotion)
 
     return (
-        <article className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 flex flex-col gap-4 hover:border-violet-500/20 transition-all">
-            {/* Date + emotion badge */}
-            <div className="flex items-start justify-between gap-3">
+        <article className="card" style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+            {/* Date + emotion */}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.75rem' }}>
                 <div>
-                    <p className="text-xs text-white/30 mb-1">{fmtDate(report.created_at)}</p>
-                    <p className={`text-xl font-semibold capitalize ${colorClass}`}>
+                    <p style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)', margin: '0 0 4px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {fmtDate(report.created_at)}
+                    </p>
+                    <p style={{ fontSize: '1.125rem', fontFamily: 'var(--font-serif)', fontWeight: 700, margin: 0, textTransform: 'capitalize', color }}>
                         {report.dominant_emotion || '—'}
                     </p>
                 </div>
-                <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 text-white/25 shrink-0">
+                <span style={{
+                    fontSize: '0.6875rem', padding: '4px 10px', borderRadius: '9999px',
+                    background: 'var(--color-muted)', color: 'var(--color-muted-fg)',
+                    fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+                }}>
                     Week of {report.week_start}
                 </span>
             </div>
 
             {/* Top themes */}
             {report.top_themes?.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
                     {report.top_themes.map(t => (
-                        <span
-                            key={t}
-                            className="text-[10px] px-2 py-1 rounded-full bg-violet-500/10 text-violet-300 border border-violet-500/15 capitalize"
-                        >
-                            {t}
-                        </span>
+                        <span key={t} className="badge-primary" style={{ textTransform: 'capitalize' }}>{t}</span>
                     ))}
                 </div>
             )}
@@ -72,44 +61,35 @@ export default function ReportCard({ report }) {
             {/* Emotional arc */}
             {report.emotional_arc && (
                 <div>
-                    <p className="text-[10px] text-white/25 uppercase tracking-widest mb-1">Emotional Arc</p>
-                    <p className="text-sm text-white/55 leading-relaxed line-clamp-3">
+                    <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 4px' }}>Emotional Arc</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-foreground)', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         {report.emotional_arc}
                     </p>
                 </div>
             )}
 
-            {/* AI observation */}
+            {/* AI insight */}
             {report.ai_observation && (
                 <div>
-                    <p className="text-[10px] text-white/25 uppercase tracking-widest mb-1">Insight</p>
-                    <p className="text-xs text-white/40 italic leading-relaxed line-clamp-4">
+                    <p style={{ fontSize: '0.625rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-muted-fg)', margin: '0 0 4px' }}>Insight</p>
+                    <p style={{ fontSize: '0.8125rem', fontStyle: 'italic', color: 'var(--color-muted-fg)', lineHeight: 1.6, margin: 0, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                         "{report.ai_observation}"
                     </p>
                 </div>
             )}
 
-            {/* Download button */}
-            <div className="pt-1 border-t border-white/5">
-                {dlError && <p className="text-xs text-red-400 mb-2">{dlError}</p>}
-                <button
-                    onClick={handleDownload}
-                    disabled={downloading}
-                    className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300
-                               disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                    {downloading ? (
-                        <span className="animate-pulse">Generating PDF…</span>
-                    ) : (
-                        <>
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none"
-                                viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                <path strokeLinecap="round" strokeLinejoin="round"
-                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                            </svg>
-                            Download PDF
-                        </>
-                    )}
+            {/* Download */}
+            <div style={{ paddingTop: '0.625rem', borderTop: '1px solid var(--color-border)' }}>
+                {dlError && <p style={{ fontSize: '0.75rem', color: 'var(--color-destructive)', margin: '0 0 6px' }}>{dlError}</p>}
+                <button onClick={handleDownload} disabled={downloading}
+                    style={{
+                        display: 'flex', alignItems: 'center', gap: '0.375rem',
+                        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                        fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-primary)',
+                        opacity: downloading ? 0.5 : 1, transition: 'opacity 0.15s',
+                    }}>
+                    <Download size={14} />
+                    {downloading ? 'Generating PDF…' : 'Download PDF'}
                 </button>
             </div>
         </article>

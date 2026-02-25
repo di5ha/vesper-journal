@@ -5,49 +5,41 @@ import {
     Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { getDriftThemes, getDriftTimeline } from '../lib/api'
+import { BookOpen, ArrowLeft, Loader2 } from 'lucide-react'
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
 function fmtDate(iso) {
-    return new Date(iso).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric',
-    })
+    return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Colour mapped to mood score — warm teal palette
 function moodColor(score) {
-    if (score == null) return '#6b7280'
-    if (score <= 3) return '#ef4444'
-    if (score <= 5) return '#f59e0b'
-    if (score <= 7) return '#84cc16'
-    return '#10b981'
+    if (score == null) return 'var(--color-muted-fg)'
+    if (score <= 3) return '#e97b5a'   // low — warm coral
+    if (score <= 5) return '#e9b55a'   // mid — amber
+    if (score <= 7) return '#5ab3b3'   // good — teal mid
+    return 'var(--color-primary)'      // high — full teal
 }
 
-// ---------------------------------------------------------------------------
-// Custom Recharts Tooltip
-// ---------------------------------------------------------------------------
+// ── Tooltip ──────────────────────────────────────────────────────────────────
 function CustomTooltip({ active, payload }) {
-    if (!active || !payload || !payload.length) return null
+    if (!active || !payload?.length) return null
     const d = payload[0].payload
-    const color = moodColor(d.mood_score)
     return (
-        <div className="bg-[#1a1a24] border border-white/10 rounded-xl p-3 shadow-xl max-w-[220px]">
-            <p className="text-[10px] text-white/40 mb-1">{fmtDate(d.created_at)}</p>
-            <p className="text-lg font-bold mb-1" style={{ color }}>
+        <div className="card" style={{ padding: '0.75rem 1rem', maxWidth: '200px', boxShadow: '0 8px 24px rgba(0,0,0,0.10)' }}>
+            <p style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)', margin: '0 0 4px' }}>{fmtDate(d.created_at)}</p>
+            <p style={{ fontSize: '1.25rem', fontWeight: 700, margin: '0 0 6px', color: moodColor(d.mood_score) }}>
                 {d.mood_score?.toFixed(1)}
-                <span className="text-xs font-normal text-white/30"> / 10</span>
+                <span style={{ fontSize: '0.75rem', fontWeight: 400, color: 'var(--color-muted-fg)' }}> / 10</span>
             </p>
             {d.observation && (
-                <p className="text-xs text-white/50 italic leading-relaxed line-clamp-3">
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', fontStyle: 'italic', lineHeight: 1.5, margin: '0 0 6px', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     "{d.observation}"
                 </p>
             )}
             {d.themes?.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
                     {d.themes.slice(0, 3).map(t => (
-                        <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-violet-500/15 text-violet-300">
-                            {t}
-                        </span>
+                        <span key={t} className="badge-primary" style={{ fontSize: '0.625rem' }}>{t}</span>
                     ))}
                 </div>
             )}
@@ -55,184 +47,130 @@ function CustomTooltip({ active, payload }) {
     )
 }
 
-// ---------------------------------------------------------------------------
-// Empty / loading states
-// ---------------------------------------------------------------------------
-function EmptyState({ filtering }) {
-    return (
-        <div className="flex flex-col items-center justify-center h-64 gap-3">
-            <div className="text-3xl">◌</div>
-            <p className="text-white/30 text-sm text-center leading-relaxed">
-                {filtering
-                    ? 'No entries match this theme yet.'
-                    : 'Write and save a few journal entries to see your mood drift here.'}
-            </p>
-        </div>
-    )
-}
-
-// ---------------------------------------------------------------------------
-// Gradient area chart
-// ---------------------------------------------------------------------------
+// ── Chart ─────────────────────────────────────────────────────────────────────
 function MoodChart({ data }) {
     return (
-        <ResponsiveContainer width="100%" height={320}>
-            <AreaChart data={data} margin={{ top: 10, right: 24, left: -16, bottom: 0 }}>
+        <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={data} margin={{ top: 10, right: 16, left: -16, bottom: 0 }}>
                 <defs>
-                    <linearGradient id="moodGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.02} />
+                    <linearGradient id="moodGradV0" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.20} />
+                        <stop offset="95%" stopColor="oklch(0.50 0.10 170)" stopOpacity={0.01} />
                     </linearGradient>
                 </defs>
-                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
-                <XAxis
-                    dataKey="created_at"
-                    tickFormatter={fmtDate}
-                    tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.25)', fontFamily: 'Inter,sans-serif' }}
-                    axisLine={false} tickLine={false}
-                    minTickGap={60}
-                />
-                <YAxis
-                    domain={[1, 10]}
-                    ticks={[1, 3, 5, 7, 10]}
-                    tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.25)', fontFamily: 'Inter,sans-serif' }}
-                    axisLine={false} tickLine={false}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(139,92,246,0.3)', strokeWidth: 1 }} />
-                <Area
-                    type="monotone"
-                    dataKey="mood_score"
-                    stroke="#8b5cf6"
-                    strokeWidth={2}
-                    fill="url(#moodGradient)"
-                    dot={(props) => {
-                        const { cx, cy, payload } = props
-                        const color = moodColor(payload.mood_score)
-                        return (
-                            <circle
-                                key={`dot-${cx}-${cy}`}
-                                cx={cx} cy={cy} r={4}
-                                fill={color} stroke="#0f0f13" strokeWidth={2}
-                            />
-                        )
-                    }}
-                    activeDot={{ r: 6, strokeWidth: 2, stroke: '#0f0f13' }}
-                />
+                <CartesianGrid stroke="var(--color-border)" vertical={false} />
+                <XAxis dataKey="created_at" tickFormatter={fmtDate}
+                    tick={{ fontSize: 10, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
+                    axisLine={false} tickLine={false} minTickGap={50} />
+                <YAxis domain={[1, 10]} ticks={[1, 3, 5, 7, 10]}
+                    tick={{ fontSize: 10, fill: 'var(--color-muted-fg)', fontFamily: 'Inter,sans-serif', fontWeight: 600 }}
+                    axisLine={false} tickLine={false} />
+                <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'var(--color-border)', strokeWidth: 1.5 }} />
+                <Area type="monotone" dataKey="mood_score"
+                    stroke="var(--color-primary)" strokeWidth={2.5}
+                    fill="url(#moodGradV0)"
+                    dot={({ cx, cy, payload, key }) => (
+                        <circle key={key} cx={cx} cy={cy} r={4}
+                            fill={moodColor(payload.mood_score)}
+                            stroke="var(--color-card)" strokeWidth={2} />
+                    )}
+                    activeDot={{ r: 6, stroke: 'var(--color-card)', strokeWidth: 2, fill: 'var(--color-primary)' }} />
             </AreaChart>
         </ResponsiveContainer>
     )
 }
 
-// ---------------------------------------------------------------------------
-// Main page
-// ---------------------------------------------------------------------------
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function DriftTimeline() {
     const navigate = useNavigate()
-
     const [themes, setThemes] = useState([])
     const [timeline, setTimeline] = useState([])
     const [activeTheme, setActive] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    // Fetch themes once on mount
-    useEffect(() => {
-        getDriftThemes()
-            .then(setThemes)
-            .catch(console.error)
-    }, [])
+    useEffect(() => { getDriftThemes().then(setThemes).catch(console.error) }, [])
 
-    // Fetch timeline whenever activeTheme changes
     const fetchTimeline = useCallback((theme) => {
-        setLoading(true)
-        setError(null)
+        setLoading(true); setError(null)
         getDriftTimeline(theme)
-            .then(data => { setTimeline(data); setLoading(false) })
-            .catch(err => { setError(err.message); setLoading(false) })
+            .then(d => { setTimeline(d); setLoading(false) })
+            .catch(e => { setError(e.message); setLoading(false) })
     }, [])
 
-    useEffect(() => {
-        fetchTimeline(activeTheme)
-    }, [activeTheme, fetchTimeline])
-
-    function handleThemeClick(theme) {
-        setActive(prev => prev === theme ? null : theme)
-    }
+    useEffect(() => { fetchTimeline(activeTheme) }, [activeTheme, fetchTimeline])
 
     const avgMood = timeline.length
         ? (timeline.reduce((s, e) => s + (e.mood_score ?? 0), 0) / timeline.length).toFixed(1)
         : null
 
     return (
-        <div className="min-h-screen bg-[#0f0f13] flex flex-col">
-            {/* Top nav */}
-            <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0">
-                <div className="flex items-center gap-4">
-                    <span className="text-white font-semibold tracking-tight select-none">✦ vesper</span>
-                    <span className="text-white/15 text-xs">·</span>
-                    <span className="text-xs text-violet-300 font-medium">Drift Timeline</span>
+        <div style={{ background: 'var(--color-background)', minHeight: '100svh' }}>
+            {/* ── Nav ── */}
+            <header style={{
+                position: 'sticky', top: 0, zIndex: 20,
+                background: 'oklch(0.975 0.005 75 / 0.92)',
+                backdropFilter: 'blur(12px)',
+                borderBottom: '1px solid var(--color-border)',
+            }}>
+                <div style={{ maxWidth: '32rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
+                        <BookOpen size={20} />
+                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-muted-fg)', padding: '2px 10px', background: 'var(--color-muted)', borderRadius: '9999px', marginLeft: '4px' }}>Drift</span>
+                    </div>
+                    <button onClick={() => navigate('/dashboard')} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                        <ArrowLeft size={15} />
+                        Journal
+                    </button>
                 </div>
-                <button
-                    onClick={() => navigate('/dashboard')}
-                    className="flex items-center gap-2 text-xs text-white/30 hover:text-white/60 transition-colors"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none"
-                        viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                    </svg>
-                    Back to Journal
-                </button>
             </header>
 
-            {/* Body */}
-            <div className="flex-1 overflow-y-auto px-6 py-8 max-w-5xl mx-auto w-full">
-                {/* Title row */}
-                <div className="flex items-end justify-between mb-8">
+            {/* ── Body ── */}
+            <main style={{ maxWidth: '32rem', margin: '0 auto', padding: '1.5rem 1.25rem 6rem' }}>
+                {/* Heading row */}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
                     <div>
-                        <h1 className="text-2xl font-semibold text-white tracking-tight mb-1">
+                        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-foreground)', margin: '0 0 4px' }}>
                             Mood Drift
                         </h1>
-                        <p className="text-sm text-white/30">
+                        <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
                             {activeTheme
-                                ? <>Showing entries tagged <span className="text-violet-300">"{activeTheme}"</span></>
+                                ? <>Entries tagged <strong style={{ color: 'var(--color-foreground)' }}>"{activeTheme}"</strong></>
                                 : 'Your emotional journey over time'}
                         </p>
                     </div>
                     {avgMood && (
-                        <div className="text-right">
-                            <p className="text-xs text-white/25 mb-0.5">Avg mood</p>
-                            <p className="text-2xl font-bold" style={{ color: moodColor(parseFloat(avgMood)) }}>
-                                {avgMood}
-                            </p>
+                        <div className="card" style={{ padding: '0.625rem 1rem', textAlign: 'right' }}>
+                            <p style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--color-muted-fg)', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Mood</p>
+                            <p style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: moodColor(parseFloat(avgMood)) }}>{avgMood}</p>
                         </div>
                     )}
                 </div>
 
                 {/* Theme pills */}
                 {themes.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-6">
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem' }}>
                         <button
                             onClick={() => setActive(null)}
-                            className={[
-                                'px-3 py-1.5 rounded-full text-xs font-medium transition-all',
-                                !activeTheme
-                                    ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                                    : 'bg-white/5 text-white/30 border border-white/5 hover:bg-white/10',
-                            ].join(' ')}
-                        >
+                            style={{
+                                padding: '0.375rem 0.875rem', borderRadius: '9999px', border: 'none',
+                                cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.15s',
+                                background: !activeTheme ? 'var(--color-primary)' : 'var(--color-muted)',
+                                color: !activeTheme ? 'var(--color-primary-fg)' : 'var(--color-muted-fg)',
+                            }}>
                             All entries
                         </button>
                         {themes.map(theme => (
-                            <button
-                                key={theme}
-                                onClick={() => handleThemeClick(theme)}
-                                className={[
-                                    'px-3 py-1.5 rounded-full text-xs font-medium transition-all capitalize',
-                                    activeTheme === theme
-                                        ? 'bg-violet-500/20 text-violet-300 border border-violet-500/30'
-                                        : 'bg-white/5 text-white/30 border border-white/5 hover:bg-white/10',
-                                ].join(' ')}
-                            >
+                            <button key={theme}
+                                onClick={() => setActive(p => p === theme ? null : theme)}
+                                style={{
+                                    padding: '0.375rem 0.875rem', borderRadius: '9999px', border: 'none',
+                                    cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, transition: 'all 0.15s',
+                                    textTransform: 'capitalize',
+                                    background: activeTheme === theme ? 'var(--color-primary)' : 'var(--color-muted)',
+                                    color: activeTheme === theme ? 'var(--color-primary-fg)' : 'var(--color-muted-fg)',
+                                }}>
                                 {theme}
                             </button>
                         ))}
@@ -240,31 +178,33 @@ export default function DriftTimeline() {
                 )}
 
                 {/* Chart card */}
-                <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-6">
-                    {error && (
-                        <p className="text-red-400 text-sm text-center py-8">{error}</p>
-                    )}
+                <div className="card" style={{ padding: '1.25rem' }}>
+                    {error && <p style={{ fontSize: '0.875rem', color: 'var(--color-destructive)', textAlign: 'center', padding: '2rem 0' }}>{error}</p>}
+
                     {!error && loading && (
-                        <div className="h-80 flex items-center justify-center">
-                            <div className="text-white/20 text-sm animate-pulse">Loading timeline…</div>
+                        <div style={{ height: '280px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Loader2 size={22} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
                         </div>
                     )}
+
                     {!error && !loading && timeline.length < 2 && (
-                        <EmptyState filtering={!!activeTheme} />
+                        <div style={{ height: '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                            <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', textAlign: 'center' }}>
+                                {activeTheme ? `No entries match "${activeTheme}" yet.` : 'Write a few entries to see your mood drift.'}
+                            </p>
+                        </div>
                     )}
-                    {!error && !loading && timeline.length >= 2 && (
-                        <MoodChart data={timeline} />
-                    )}
+
+                    {!error && !loading && timeline.length >= 2 && <MoodChart data={timeline} />}
                 </div>
 
-                {/* Entry count */}
                 {!loading && timeline.length > 0 && (
-                    <p className="text-xs text-white/20 text-center mt-4">
+                    <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', textAlign: 'center', marginTop: '0.75rem' }}>
                         {timeline.length} {timeline.length === 1 ? 'entry' : 'entries'}
                         {activeTheme ? ` tagged "${activeTheme}"` : ' tracked'}
                     </p>
                 )}
-            </div>
+            </main>
         </div>
     )
 }
