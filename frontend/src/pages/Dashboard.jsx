@@ -1,180 +1,337 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
-import { getEntries } from '../lib/api'
+import { getEntries, getEntry, createEntry, updateEntry, deleteEntry } from '../lib/api'
 import {
-    BookOpen, LogOut, Plus, Search, BookMarked, Loader2,
+    BookOpen, LogOut, Plus, Search, BookMarked,
+    Loader2, ArrowRight, Trash2, MoreHorizontal,
+    BarChart2, FileText,
 } from 'lucide-react'
-import {
-    startOfWeek, addDays, isToday, isSameDay, format,
-} from 'date-fns'
+import { format, isToday, formatDistanceToNow } from 'date-fns'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Mood constants (matching V0 lib/types)
+// Moods
 // ─────────────────────────────────────────────────────────────────────────────
-export const MOODS = [
-    { value: 'happy', label: 'Happy', emoji: '😊' },
-    { value: 'calm', label: 'Calm', emoji: '😌' },
-    { value: 'grateful', label: 'Grateful', emoji: '🙏' },
-    { value: 'reflective', label: 'Reflective', emoji: '🤔' },
-    { value: 'anxious', label: 'Anxious', emoji: '😰' },
-    { value: 'sad', label: 'Sad', emoji: '😔' },
+const MOODS = [
+    { value: 'happy', emoji: '😊', label: 'Happy' },
+    { value: 'calm', emoji: '😌', label: 'Calm' },
+    { value: 'grateful', emoji: '🙏', label: 'Grateful' },
+    { value: 'reflective', emoji: '🤔', label: 'Reflective' },
+    { value: 'anxious', emoji: '😰', label: 'Anxious' },
+    { value: 'sad', emoji: '😔', label: 'Sad' },
 ]
 
-// Unpack title + mood from packed content string
-function parseEntry(entry) {
-    const raw = entry.content ?? ''
+// ─────────────────────────────────────────────────────────────────────────────
+// Content format helpers
+// New entries are stored as:
+//   [V]\n<title>\n[mood: xxx]\n<body>   — if mood set
+//   [V]\n<title>\n<body>               — if no mood
+// Old entries (no [V] sentinel): treat everything as body, title = ''
+// ─────────────────────────────────────────────────────────────────────────────
+function packContent(title, mood, body) {
+    const parts = ['[V]', title.trim()]
+    if (mood) parts.push(`[mood: ${mood}]`)
+    parts.push(body)
+    return parts.join('\n')
+}
+
+function unpackContent(raw) {
+    if (!raw) return { title: '', mood: '', body: '' }
     const lines = raw.split('\n')
-    const title = lines[0] || 'Untitled'
-    const moodMatch = (lines[1] ?? '').match(/^\[mood: (\w+)\]$/)
-    const mood = moodMatch ? moodMatch[1] : null
-    return { title, mood }
+    if (lines[0] !== '[V]') {
+        // Old format: whole thing is body
+        return { title: '', mood: '', body: raw }
+    }
+    const title = lines[1] ?? ''
+    const moodMatch = (lines[2] ?? '').match(/^\[mood: (\w+)\]$/)
+    if (moodMatch) {
+        return { title, mood: moodMatch[1], body: lines.slice(3).join('\n').trimStart() }
+    }
+    return { title, mood: '', body: lines.slice(2).join('\n').trimStart() }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// CalendarStrip
+// Mood picker (emoji grid)
 // ─────────────────────────────────────────────────────────────────────────────
-function CalendarStrip({ selectedDate, onSelectDate }) {
-    const weekStart = startOfWeek(selectedDate, { weekStartsOn: 0 })
-    const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
-
+function MoodPicker({ mood, onChange }) {
+    const [open, setOpen] = useState(false)
+    const selected = MOODS.find(m => m.value === mood)
     return (
-        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', padding: '0.75rem' }}>
-            {days.map(day => {
-                const selected = isSameDay(day, selectedDate)
-                const today = isToday(day)
-                return (
-                    <button
-                        key={day.toISOString()}
-                        onClick={() => onSelectDate(day)}
-                        style={{
-                            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-                            padding: '0.5rem 0.625rem',
-                            borderRadius: '0.75rem',
-                            border: 'none', cursor: 'pointer',
-                            background: selected
-                                ? 'var(--color-primary)'
-                                : today
-                                    ? 'oklch(0.50 0.10 170 / 0.10)'
-                                    : 'transparent',
-                            color: selected ? 'var(--color-primary-fg)'
-                                : today ? 'var(--color-primary)'
-                                    : 'var(--color-muted-fg)',
-                            transition: 'all 0.15s',
-                            flex: 1,
-                        }}>
-                        <span style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            {format(day, 'EEE')}
-                        </span>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>{format(day, 'd')}</span>
-                    </button>
-                )
-            })}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+            <button onClick={() => setOpen(o => !o)} title="Set mood"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.125rem', padding: '4px', borderRadius: '6px', transition: 'background 0.1s' }}>
+                {selected ? selected.emoji : '🙂'}
+            </button>
+            {open && (
+                <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
+                    <div style={{
+                        position: 'absolute', left: 0, top: '2rem', zIndex: 50,
+                        background: 'var(--color-card)', border: '1px solid var(--color-border)',
+                        borderRadius: '0.75rem', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                        minWidth: '148px', overflow: 'hidden',
+                    }}>
+                        {MOODS.map(m => (
+                            <button key={m.value} onClick={() => { onChange(mood === m.value ? '' : m.value); setOpen(false) }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                    width: '100%', padding: '0.5rem 0.75rem', border: 'none',
+                                    background: mood === m.value ? 'var(--color-muted)' : 'transparent',
+                                    cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500,
+                                    color: 'var(--color-foreground)', transition: 'background 0.1s',
+                                }}
+                                onMouseEnter={e => { if (mood !== m.value) e.currentTarget.style.background = 'var(--color-muted)' }}
+                                onMouseLeave={e => { if (mood !== m.value) e.currentTarget.style.background = 'transparent' }}>
+                                <span>{m.emoji}</span>{m.label}
+                            </button>
+                        ))}
+                        {mood && (
+                            <button onClick={() => { onChange(''); setOpen(false) }}
+                                style={{
+                                    width: '100%', padding: '0.4rem 0.75rem', border: 'none',
+                                    borderTop: '1px solid var(--color-border)', background: 'transparent',
+                                    cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-muted-fg)',
+                                }}>
+                                Clear mood
+                            </button>
+                        )}
+                    </div>
+                </>
+            )}
         </div>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SearchBar
+// Options menu (delete)
 // ─────────────────────────────────────────────────────────────────────────────
-function SearchBar({ value, onChange }) {
+function OptionsMenu({ onDelete, deleting }) {
+    const [open, setOpen] = useState(false)
     return (
         <div style={{ position: 'relative' }}>
-            <Search size={16} style={{
-                position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)',
-                color: 'var(--color-muted-fg)', pointerEvents: 'none',
-            }} />
-            <input
-                className="input"
-                style={{ paddingLeft: '2.5rem', height: '2.75rem', borderRadius: '0.75rem' }}
-                placeholder="Search entries"
-                value={value}
-                onChange={e => onChange(e.target.value)}
-            />
+            <button onClick={() => setOpen(o => !o)} className="btn-icon" title="Options">
+                <MoreHorizontal size={18} />
+            </button>
+            {open && (
+                <>
+                    <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
+                    <div style={{
+                        position: 'absolute', right: 0, top: '2.25rem', zIndex: 50,
+                        background: 'var(--color-card)', border: '1px solid var(--color-border)',
+                        borderRadius: '0.75rem', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                        minWidth: '140px', overflow: 'hidden',
+                    }}>
+                        <button onClick={() => { setOpen(false); onDelete() }} disabled={deleting}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                width: '100%', padding: '0.6rem 0.875rem', border: 'none',
+                                background: 'transparent', cursor: 'pointer',
+                                color: 'var(--color-destructive)', fontSize: '0.875rem', fontWeight: 500,
+                            }}>
+                            <Trash2 size={14} /> {deleting ? 'Deleting…' : 'Delete'}
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TodayCard — teal tile in horizontal scroll
+// Inline Entry Editor (shown in main panel)
 // ─────────────────────────────────────────────────────────────────────────────
-function TodayCard({ entry, onClick }) {
-    const { title, mood: moodValue } = parseEntry(entry)
-    const mood = MOODS.find(m => m.value === moodValue)
+function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
+    const [title, setTitle] = useState('')
+    const [body, setBody] = useState('')
+    const [mood, setMood] = useState('')
+    const [loading, setLoading] = useState(!isNew)
+    const [saving, setSaving] = useState(false)
+    const [error, setError] = useState(null)
+    const [dirty, setDirty] = useState(false)
+    const [dateLabel, setDateLabel] = useState(format(new Date(), 'EEEE, MMMM d, yyyy'))
+
+    // Load existing entry
+    useEffect(() => {
+        if (isNew) {
+            setTitle(''); setBody(''); setMood('')
+            setDateLabel(format(new Date(), 'EEEE, MMMM d, yyyy'))
+            setDirty(false); setLoading(false)
+            return
+        }
+        setLoading(true)
+        getEntry(entryId)
+            .then(entry => {
+                const { title: t, mood: m, body: b } = unpackContent(entry.content)
+                setTitle(t); setMood(m); setBody(b)
+                setDateLabel(format(new Date(entry.created_at), 'EEEE, MMMM d, yyyy'))
+                setDirty(false)
+            })
+            .catch(e => setError(e.message))
+            .finally(() => setLoading(false))
+    }, [entryId, isNew])
+
+    function markDirty() { setDirty(true) }
+
+    async function handleSave() {
+        setSaving(true); setError(null)
+        try {
+            const packed = packContent(title, mood, body)
+            if (isNew) {
+                const entry = await createEntry(packed)
+                setDirty(false)
+                onSaved(entry)
+            } else {
+                const entry = await updateEntry(entryId, packed)
+                setDirty(false)
+                onSaved(entry)
+            }
+        } catch (e) {
+            setError(e.message)
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    async function handleDelete() {
+        if (!confirm('Delete this entry permanently?')) return
+        try {
+            await deleteEntry(entryId)
+            onDeleted()
+        } catch (e) {
+            setError(e.message)
+        }
+    }
+
+    if (loading) return (
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
+        </div>
+    )
+
     return (
-        <button onClick={onClick}
-            style={{
-                display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-                minWidth: '160px', minHeight: '140px', padding: '1rem',
-                borderRadius: '1rem', border: 'none', cursor: 'pointer',
-                background: 'var(--color-primary)', color: 'var(--color-primary-fg)',
-                textAlign: 'left', transition: 'all 0.15s',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.16)' }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.10)' }}>
-            <div style={{ fontSize: '1.25rem' }}>{mood?.emoji ?? '📖'}</div>
-            <div>
-                <p style={{ fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.3, margin: '0 0 4px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                    {title}
-                </p>
-                <p style={{ fontSize: '0.75rem', opacity: 0.8, margin: 0 }}>
-                    {format(new Date(entry.created_at), 'HH:mm')}
-                </p>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+            {/* Editor top bar */}
+            <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '0.875rem 1.5rem', borderBottom: '1px solid var(--color-border)',
+                flexShrink: 0,
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', fontWeight: 500 }}>
+                        {dateLabel}
+                    </span>
+                    <MoodPicker mood={mood} onChange={(m) => { setMood(m); markDirty() }} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    {!isNew && <OptionsMenu onDelete={handleDelete} deleting={false} />}
+                    {error && <span style={{ fontSize: '0.8125rem', color: 'var(--color-destructive)' }}>{error}</span>}
+                    <button onClick={handleSave} disabled={saving || !dirty} className="btn-primary"
+                        style={{ padding: '0.5rem 1.25rem', borderRadius: '9999px', fontSize: '0.875rem', opacity: (!dirty && !isNew) ? 0.5 : 1 }}>
+                        {saving ? <><Loader2 size={13} className="animate-spin" /> Saving…</> : isNew ? 'Save entry' : 'Update'}
+                    </button>
+                </div>
             </div>
-        </button>
+
+            {/* Writing area */}
+            <div style={{ flex: 1, overflow: 'auto', padding: '2rem 3rem' }}>
+                <input
+                    placeholder="Entry title…"
+                    value={title}
+                    onChange={e => { setTitle(e.target.value); markDirty() }}
+                    style={{
+                        width: '100%', border: 'none', outline: 'none', padding: 0,
+                        fontFamily: 'var(--font-serif)', fontSize: '1.75rem', fontWeight: 700,
+                        color: 'var(--color-foreground)', background: 'transparent',
+                        marginBottom: '1rem', lineHeight: 1.3,
+                    }}
+                />
+                <textarea
+                    placeholder="Start writing your thoughts…"
+                    value={body}
+                    onChange={e => { setBody(e.target.value); markDirty() }}
+                    style={{
+                        width: '100%', minHeight: '60vh', border: 'none', outline: 'none',
+                        resize: 'none', padding: 0,
+                        fontSize: '1rem', lineHeight: 1.8,
+                        color: 'var(--color-foreground)', background: 'transparent',
+                        fontFamily: 'var(--font-sans)',
+                    }}
+                />
+            </div>
+        </div>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EntryCard — row in the entries list
+// Welcome / empty state for main panel
 // ─────────────────────────────────────────────────────────────────────────────
-function EntryCard({ entry, onClick }) {
-    const { title, mood: moodValue } = parseEntry(entry)
-    const mood = MOODS.find(m => m.value === moodValue)
+function WelcomePanel({ onNewEntry }) {
+    return (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', textAlign: 'center' }}>
+            <img src="/journal-hero.png" alt="Journaling" style={{ width: '180px', opacity: 0.85, marginBottom: '1.5rem' }} />
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.375rem', fontWeight: 700, margin: '0 0 0.5rem', color: 'var(--color-foreground)' }}>
+                Select an entry or start a new one
+            </h2>
+            <p style={{ fontSize: '0.9375rem', color: 'var(--color-muted-fg)', maxWidth: '20rem', lineHeight: 1.6, margin: '0 0 2rem' }}>
+                Pick an entry from the sidebar to read or edit it, or create a new entry to capture today's thoughts.
+            </p>
+            <button onClick={onNewEntry} className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Plus size={16} /> New entry
+            </button>
+        </div>
+    )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar entry row
+// ─────────────────────────────────────────────────────────────────────────────
+function SidebarEntry({ entry, selected, onClick }) {
+    const { title, mood } = unpackContent(entry.content)
+    const moodObj = MOODS.find(m => m.value === mood)
+    const displayTitle = title || 'Untitled'
+    const timeAgo = isToday(new Date(entry.created_at))
+        ? format(new Date(entry.created_at), 'HH:mm')
+        : formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })
+
     return (
         <button onClick={onClick}
             style={{
-                display: 'flex', alignItems: 'center', gap: '0.875rem',
-                width: '100%', padding: '0.875rem 1rem',
-                background: 'var(--color-card)',
-                border: '1px solid var(--color-border)',
-                borderLeft: '3px solid var(--color-primary)',
-                borderRadius: '0.75rem',
-                cursor: 'pointer', textAlign: 'left',
-                transition: 'box-shadow 0.15s',
+                display: 'flex', alignItems: 'flex-start', gap: '0.625rem',
+                width: '100%', padding: '0.75rem 1rem', border: 'none',
+                textAlign: 'left', cursor: 'pointer', transition: 'background 0.1s',
+                background: selected ? 'oklch(0.50 0.10 170 / 0.08)' : 'transparent',
+                borderLeft: selected ? '3px solid var(--color-primary)' : '3px solid transparent',
             }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.08)' }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none' }}>
+            onMouseEnter={e => { if (!selected) e.currentTarget.style.background = 'var(--color-muted)' }}
+            onMouseLeave={e => { if (!selected) e.currentTarget.style.background = 'transparent' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ fontWeight: 600, fontSize: '0.9375rem', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--color-foreground)' }}>
-                    {title}
+                <p style={{ fontWeight: 600, fontSize: '0.875rem', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: selected ? 'var(--color-primary)' : 'var(--color-foreground)' }}>
+                    {displayTitle}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', margin: 0 }}>
-                    {format(new Date(entry.created_at), 'MMM d, yyyy')}
-                </p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--color-muted-fg)', margin: 0 }}>{timeAgo}</p>
             </div>
-            <span style={{ fontSize: '1.125rem', flexShrink: 0 }}>{mood?.emoji ?? ''}</span>
+            {moodObj && <span style={{ fontSize: '1rem', flexShrink: 0, marginTop: '2px' }}>{moodObj.emoji}</span>}
         </button>
     )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dashboard (Journal Home)
+// Dashboard — two-panel layout
 // ─────────────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
     const { user } = useAuth()
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+
+    const selectedId = searchParams.get('entry')   // uuid or null
+    const isNew = searchParams.get('new') === '1'
+
     const [entries, setEntries] = useState([])
     const [loading, setLoading] = useState(true)
     const [search, setSearch] = useState('')
-    const [selectedDate, setSelectedDate] = useState(new Date())
 
-    // greeting
-    const hour = new Date().getHours()
-    const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-    const name = user?.email?.split('@')[0] ?? 'there'
+    const firstName = user?.email?.split('@')[0] ?? 'there'
 
     const load = useCallback(() => {
         setLoading(true)
@@ -186,175 +343,139 @@ export default function Dashboard() {
 
     useEffect(() => { load() }, [load])
 
-    async function handleSignOut() {
+    async function signOut() {
         await supabase.auth.signOut()
         navigate('/auth')
     }
 
-    // Filter
     const filtered = useMemo(() =>
         entries.filter(e =>
-            !search ||
-            (e.title ?? '').toLowerCase().includes(search.toLowerCase()) ||
-            (e.content ?? '').toLowerCase().includes(search.toLowerCase())
+            !search || (e.content ?? '').toLowerCase().includes(search.toLowerCase())
         ), [entries, search])
 
-    const todayEntries = useMemo(() => filtered.filter(e => isToday(new Date(e.created_at))), [filtered])
-    const recentEntries = useMemo(() => filtered.filter(e => !isToday(new Date(e.created_at))), [filtered])
+    function selectEntry(id) { setSearchParams({ entry: id }) }
+    function newEntry() { setSearchParams({ new: '1' }) }
+    function clearSelection() { setSearchParams({}) }
 
-    const goToEntry = (id) => navigate(`/journal/${id}`)
+    // After save: refresh list, keep entry selected
+    function handleSaved(savedEntry) {
+        load()
+        if (isNew) setSearchParams({ entry: savedEntry.id })
+    }
+
+    // After delete: clear selection + refresh
+    function handleDeleted() {
+        clearSelection()
+        load()
+    }
 
     return (
-        <div style={{ background: 'var(--color-background)', minHeight: '100svh' }}>
-            {/* ── Nav ── */}
-            <header style={{
-                position: 'sticky', top: 0, zIndex: 20,
-                background: 'oklch(0.975 0.005 75 / 0.92)',
-                backdropFilter: 'blur(12px)',
-                borderBottom: '1px solid var(--color-border)',
+        <div style={{ display: 'flex', height: '100svh', background: 'var(--color-background)', overflow: 'hidden' }}>
+
+            {/* ───────────── Sidebar ───────────── */}
+            <aside style={{
+                width: '280px', flexShrink: 0,
+                display: 'flex', flexDirection: 'column',
+                borderRight: '1px solid var(--color-border)',
+                background: 'var(--color-card)',
+                overflow: 'hidden',
             }}>
-                <div style={{ maxWidth: '32rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.25rem' }}>
+                {/* Brand + sign out */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1rem 0.75rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
-                        <BookOpen size={20} />
-                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
+                        <BookOpen size={18} />
+                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.0625rem', fontWeight: 700, letterSpacing: '-0.02em' }}>vesper</span>
                     </div>
-                    <button onClick={handleSignOut} className="btn-ghost" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <button onClick={signOut} className="btn-icon" title="Sign out" style={{ width: '1.875rem', height: '1.875rem' }}>
                         <LogOut size={15} />
-                        <span>Sign out</span>
                     </button>
                 </div>
-            </header>
 
-            {/* ── Body ── */}
-            <main style={{ maxWidth: '32rem', margin: '0 auto', padding: '1.5rem 1.25rem 8rem' }}>
-                {/* Greeting */}
-                <div style={{ marginBottom: '1.5rem' }}>
-                    <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-foreground)', margin: '0 0 4px' }}>
-                        {greeting}, {name}
-                    </h1>
-                    <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', margin: 0 }}>
-                        {format(new Date(), 'EEEE, MMMM d, yyyy')}
-                    </p>
+                {/* New entry btn */}
+                <div style={{ padding: '0.5rem 0.875rem 0.75rem' }}>
+                    <button onClick={newEntry} className="btn-primary" style={{ width: '100%', justifyContent: 'center', borderRadius: '0.625rem', padding: '0.5625rem 0', gap: '0.375rem', fontSize: '0.875rem' }}>
+                        <Plus size={15} /> New entry
+                    </button>
                 </div>
 
-                {/* Content */}
-                {loading ? (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '5rem 0' }}>
-                        <Loader2 size={24} className="animate-spin" style={{ color: 'var(--color-primary)' }} />
-                    </div>
-                ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        {/* Calendar */}
-                        <CalendarStrip selectedDate={selectedDate} onSelectDate={setSelectedDate} />
+                {/* Search */}
+                <div style={{ padding: '0 0.875rem 0.625rem', position: 'relative' }}>
+                    <Search size={14} style={{ position: 'absolute', left: '1.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-muted-fg)', pointerEvents: 'none' }} />
+                    <input className="input" style={{ paddingLeft: '2.25rem', fontSize: '0.875rem', height: '2.25rem', borderRadius: '0.625rem' }}
+                        placeholder="Search entries" value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
 
-                        {/* Search */}
-                        <SearchBar value={search} onChange={setSearch} />
+                {/* Entry list */}
+                <div style={{ flex: 1, overflowY: 'auto' }}>
+                    {loading && (
+                        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+                            <Loader2 size={18} style={{ color: 'var(--color-primary)', animation: 'spin 1s linear infinite' }} />
+                        </div>
+                    )}
 
-                        {/* Empty state */}
-                        {entries.length === 0 && (
-                            <div style={{
-                                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                                padding: '4rem 1rem', textAlign: 'center',
-                                borderRadius: '1rem', border: '2px dashed var(--color-border)',
-                                background: 'var(--color-card)', gap: '0.75rem',
-                            }}>
-                                <div style={{ width: '3.5rem', height: '3.5rem', borderRadius: '9999px', background: 'oklch(0.50 0.10 170 / 0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <BookMarked size={22} color='var(--color-primary)' />
-                                </div>
-                                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>Your journal is empty</h3>
-                                <p style={{ fontSize: '0.875rem', color: 'var(--color-muted-fg)', maxWidth: '18rem', lineHeight: 1.6, margin: 0 }}>
-                                    Start writing your first entry. Capture a thought, reflect on your day, or jot down something you're grateful for.
-                                </p>
-                            </div>
-                        )}
+                    {!loading && filtered.length === 0 && (
+                        <div style={{ padding: '2rem 1rem', textAlign: 'center' }}>
+                            <BookMarked size={28} style={{ color: 'var(--color-muted-fg)', margin: '0 auto 0.625rem' }} />
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--color-muted-fg)', lineHeight: 1.5 }}>
+                                {search ? 'No entries match your search.' : 'No entries yet. Write your first one!'}
+                            </p>
+                        </div>
+                    )}
 
-                        {/* Today section */}
-                        {todayEntries.length > 0 && (
-                            <section>
-                                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: '0 0 0.75rem' }}>Today</h2>
-                                <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                                    {todayEntries.map(e => <TodayCard key={e.id} entry={e} onClick={() => goToEntry(e.id)} />)}
-                                    {/* New entry tile */}
-                                    <button onClick={() => navigate('/journal/new')}
-                                        style={{
-                                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                                            minWidth: '140px', minHeight: '140px', borderRadius: '1rem',
-                                            border: '2px dashed var(--color-border)', background: 'var(--color-card)',
-                                            cursor: 'pointer', color: 'var(--color-muted-fg)', fontSize: '2rem', fontWeight: 300,
-                                            transition: 'border-color 0.15s, color 0.15s',
-                                        }}
-                                        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary)'; e.currentTarget.style.color = 'var(--color-primary)' }}
-                                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--color-border)'; e.currentTarget.style.color = 'var(--color-muted-fg)' }}>
-                                        +
-                                    </button>
-                                </div>
-                            </section>
-                        )}
+                    {!loading && filtered.map(e => (
+                        <SidebarEntry
+                            key={e.id}
+                            entry={e}
+                            selected={e.id === selectedId}
+                            onClick={() => selectEntry(e.id)}
+                        />
+                    ))}
+                </div>
 
-                        {/* Recent Entries list */}
-                        {(todayEntries.length > 0 ? recentEntries : filtered).length > 0 && (
-                            <section>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                                    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 600, margin: 0 }}>
-                                        {todayEntries.length > 0 ? 'Recent Entries' : 'All Entries'}
-                                    </h2>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                    {(todayEntries.length > 0 ? recentEntries : filtered).map(e => (
-                                        <EntryCard key={e.id} entry={e} onClick={() => goToEntry(e.id)} />
-                                    ))}
-                                </div>
-                            </section>
-                        )}
-                    </div>
-                )}
-            </main>
-
-            {/* ── Bottom tab bar ── */}
-            <nav style={{
-                position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-                background: 'oklch(0.995 0.002 75 / 0.95)',
-                backdropFilter: 'blur(12px)',
-                borderTop: '1px solid var(--color-border)',
-                display: 'flex', justifyContent: 'center',
-            }}>
-                <div style={{ display: 'flex', gap: 0, maxWidth: '32rem', width: '100%' }}>
+                {/* Bottom nav: Drift & Reports */}
+                <div style={{ borderTop: '1px solid var(--color-border)', padding: '0.5rem 0.5rem' }}>
                     {[
-                        { label: 'Journal', path: '/dashboard', active: true },
-                        { label: 'Drift', path: '/drift', active: false },
-                        { label: 'Reports', path: '/reports', active: false },
-                    ].map(tab => (
-                        <button key={tab.path}
-                            onClick={() => navigate(tab.path)}
+                        { label: 'Drift', path: '/drift', icon: BarChart2 },
+                        { label: 'Reports', path: '/reports', icon: FileText },
+                    ].map(({ label, path, icon: Icon }) => (
+                        <button key={path} onClick={() => navigate(path)}
                             style={{
-                                flex: 1, padding: '0.875rem 0 0.6rem', border: 'none', background: 'transparent',
-                                cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px',
-                                fontSize: '0.6875rem', fontWeight: 600,
-                                color: tab.active ? 'var(--color-primary)' : 'var(--color-muted-fg)',
-                                borderTop: tab.active ? '2px solid var(--color-primary)' : '2px solid transparent',
-                                transition: 'color 0.15s',
-                            }}>
-                            {tab.label}
+                                display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                width: '100%', padding: '0.5rem 0.5rem', borderRadius: '0.5rem',
+                                border: 'none', background: 'transparent', cursor: 'pointer',
+                                fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-muted-fg)',
+                                transition: 'background 0.1s, color 0.1s',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'var(--color-muted)'; e.currentTarget.style.color = 'var(--color-foreground)' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--color-muted-fg)' }}>
+                            <Icon size={15} />
+                            {label}
                         </button>
                     ))}
                 </div>
-            </nav>
+            </aside>
 
-            {/* FAB — new entry (sits above the tab bar) */}
-            <button onClick={() => navigate('/journal/new')} aria-label="New entry"
-                style={{
-                    position: 'fixed', bottom: '4.25rem', right: '1.25rem', zIndex: 50,
-                    width: '3.5rem', height: '3.5rem',
-                    borderRadius: '9999px', border: 'none', cursor: 'pointer',
-                    background: 'var(--color-primary)', color: 'var(--color-primary-fg)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.18)',
-                    transition: 'transform 0.1s, box-shadow 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)' }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}>
-                <Plus size={24} />
-            </button>
+            {/* ───────────── Main panel ───────────── */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                {!selectedId && !isNew && <WelcomePanel onNewEntry={newEntry} />}
+                {isNew && (
+                    <InlineEditor
+                        key="new"
+                        isNew
+                        onSaved={handleSaved}
+                        onDeleted={handleDeleted}
+                    />
+                )}
+                {selectedId && (
+                    <InlineEditor
+                        key={selectedId}
+                        entryId={selectedId}
+                        isNew={false}
+                        onSaved={handleSaved}
+                        onDeleted={handleDeleted}
+                    />
+                )}
+            </div>
         </div>
     )
 }

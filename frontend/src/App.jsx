@@ -1,11 +1,20 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams, useNavigate } from 'react-router-dom'
 import { AuthProvider } from './hooks/useAuth'
 import ProtectedRoute from './components/ProtectedRoute'
 import Auth from './pages/Auth'
 import Dashboard from './pages/Dashboard'
-import JournalEditor from './pages/JournalEditor'
 import DriftTimeline from './pages/DriftTimeline'
 import Reports from './pages/Reports'
+
+// Redirect /journal/:id → /dashboard?entry=<id>
+// Redirect /journal/new → /dashboard?new=1
+function EntryRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/dashboard?entry=${id}`} replace />
+}
+function NewEntryRedirect() {
+  return <Navigate to="/dashboard?new=1" replace />
+}
 
 export default function App() {
   return (
@@ -15,22 +24,20 @@ export default function App() {
           {/* Public */}
           <Route path="/auth" element={<Auth />} />
 
-          {/* Protected — journal home */}
+          {/* Protected — main two-panel dashboard */}
           <Route path="/dashboard" element={
             <ProtectedRoute><Dashboard /></ProtectedRoute>
           } />
 
-          {/* Protected — new entry */}
+          {/* Redirect old journal routes into dashboard panels */}
           <Route path="/journal/new" element={
-            <ProtectedRoute><JournalEditor /></ProtectedRoute>
+            <ProtectedRoute><NewEntryRedirect /></ProtectedRoute>
           } />
-
-          {/* Protected — edit existing entry */}
           <Route path="/journal/:id" element={
-            <ProtectedRoute><JournalEditor /></ProtectedRoute>
+            <ProtectedRoute><EntryRedirect /></ProtectedRoute>
           } />
 
-          {/* Protected — Drift & Reports (keep from main but styled) */}
+          {/* Protected — Drift & Reports */}
           <Route path="/drift" element={
             <ProtectedRoute><DriftTimeline /></ProtectedRoute>
           } />
