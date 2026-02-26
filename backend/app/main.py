@@ -22,19 +22,18 @@ app = FastAPI(
 
 # ---------------------------------------------------------------------------
 # CORS — allow the Vite dev server (and future production domain)
+# Set FRONTEND_URL env var to your Vercel URL in production (comma-separated).
 # ---------------------------------------------------------------------------
-import os
-
-_raw = os.getenv("FRONTEND_URL", "http://localhost:5173", "*")
-_allowed_origins = [o.strip() for o in _raw.split(",") if o.strip()]
+from app.core.config import settings
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_allowed_origins,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 
 # ---------------------------------------------------------------------------

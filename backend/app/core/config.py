@@ -3,6 +3,7 @@ Vesper — Application Configuration.
 Loads settings from environment variables via pydantic-settings.
 """
 
+import os
 from pydantic_settings import BaseSettings
 
 
@@ -19,7 +20,13 @@ class Settings(BaseSettings):
 
     # App
     app_env: str = "development"
-    cors_origins: list[str] = ["http://localhost:5173", "*"]
+
+    # CORS — reads FRONTEND_URL env var (comma-separated list of allowed origins)
+    # Example: FRONTEND_URL=https://vesper.vercel.app,http://localhost:5173
+    @property
+    def cors_origins(self) -> list[str]:
+        raw = os.getenv("FRONTEND_URL", "http://localhost:5173")
+        return [o.strip() for o in raw.split(",") if o.strip()]
 
     class Config:
         env_file = ".env"
