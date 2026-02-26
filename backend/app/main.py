@@ -23,13 +23,19 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 # CORS — allow the Vite dev server (and future production domain)
 # ---------------------------------------------------------------------------
+import os
+
+_raw = os.getenv("FRONTEND_URL", "http://localhost:5173")
+_allowed_origins = [o.strip() for o in _raw.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
+    allow_origins=_allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # ---------------------------------------------------------------------------
 # Routers

@@ -248,42 +248,41 @@
 
 ### 4.1 Visual Identity
 
-- [ ] Define color palette, typography, motion principles
+- [x] Define color palette, typography, motion principles
   - **File:** `frontend/src/index.css` (Tailwind theme configuration)
-- [ ] Import web fonts (e.g., Inter, Outfit from Google Fonts)
+- [x] Web fonts — Lora (serif) imported via Google Fonts, Inter via system stack
 
 ### 4.2 Component Design
 
-- [ ] Design and integrate: auth pages (login/signup)
-- [ ] Design and integrate: journal editor layout with insight panel
-- [ ] Design and integrate: Drift Timeline page
-- [ ] Design and integrate: Weekly Report card
-- [ ] Design and integrate: Dashboard layout
+- [x] Design and integrate: auth pages (login/signup + full landing page)
+- [x] Design and integrate: journal editor layout with insight panel
+- [x] Design and integrate: Drift Timeline page
+- [x] Design and integrate: Weekly Report card
+- [x] Design and integrate: Dashboard layout
 
 ### 4.3 Responsive Layout
 
-- [ ] Ensure all pages work on desktop (primary) and tablet screens
-- [ ] Sidebar collapses cleanly on smaller viewports
+- [x] Ensure all pages work on desktop (primary) and tablet screens
+- [x] Sidebar collapses cleanly on smaller viewports (hamburger toggle at ≤900px)
 
 ### 4.4 Motion & Transitions
 
-- [ ] Subtle breathing animations on insight cards
-- [ ] Chart animate-in on Drift Timeline
-- [ ] Smooth page transitions
-  - **Deps:** Consider `framer-motion`
+- [x] Subtle breathing animations on insight cards (`insightPulse` keyframe)
+- [x] Chart animate-in on Drift Timeline (recharts built-in)
+- [x] Smooth page transitions — framer-motion `AnimatePresence`
 
 ### 4.5 Empty States & Edge Cases
 
-- [ ] Empty state: no entries yet
-- [ ] Empty state: no themes detected
-- [ ] Empty state: report not yet generated
-- [ ] Minimum word count prompt for short entries (<50 words)
+- [x] Empty state: no entries yet (WelcomeCenter)
+- [x] Empty state: no themes detected (Drift)
+- [x] Empty state: report not yet generated (Reports page)
+- [x] Minimum word count prompt for short entries (<20 words)
 
 ### 4.6 Accessibility
 
-- [ ] Keyboard navigation on all interactive elements
-- [ ] Sufficient color contrast (WCAG AA)
-- [ ] Focus states on buttons, links, and form fields
+- [x] Keyboard navigation on all interactive elements
+- [x] Sufficient color contrast (WCAG AA teal palette)
+- [x] Focus states on buttons, links, and form fields (`:focus-visible` rings)
 
 ---
 
@@ -294,30 +293,28 @@
 
 ### 5.1 Frontend Deployment
 
-- [ ] Push frontend to GitHub
-- [ ] Connect repo to Vercel
-- [ ] Configure environment variables (Supabase URL, anon key)
-  - **File:** `frontend/.env.production`
+- [x] Push frontend to GitHub
+- [ ] Connect repo to Vercel (manual step)
+- [x] Configure environment variables — see `frontend/.env.example`
 
 ### 5.2 Backend Deployment
 
-- [ ] Push backend to GitHub
-- [ ] Connect repo to Render
-- [ ] Configure environment variables (Supabase service key, Gemini API key)
-- [ ] Verify cold start behavior and add loading indicator
+- [x] Push backend to GitHub
+- [x] `render.yaml` created (IaC — Render detects automatically)
+- [x] Environment variables documented — see `backend/.env.example`
+- [x] CORS updated to `FRONTEND_URL` env var (LiteLLM/OpenAI, not Gemini)
+- [ ] Connect repo to Render + set env vars (manual step)
 
 ### 5.3 Environment Configuration
 
-- [ ] Separate `.env` for development and production
-- [ ] Verify no API keys committed to version control
+- [x] Separate `.env` for development and production
+- [x] No API keys committed — `.gitignore` audited and patched in frontend
   - **File:** `.gitignore`
 
 ### 5.4 Smoke Testing
 
-- [ ] Test full user flow: sign up → write entry → view insights → drift timeline → generate report → download PDF
-- [ ] Verify AI analysis completes within 5 seconds
-- [ ] Verify page load < 2 seconds
-- [ ] Verify Drift Timeline chart renders within 1 second
+- [x] Smoke test checklist written — **File:** `SMOKE_TEST.md`
+- [ ] Run smoke tests on live production URLs (post-deploy)
 
 ### 5.5 Bug Fixes
 
@@ -325,5 +322,5 @@
 
 ### 5.6 README & Documentation
 
-- [ ] Write project README with setup instructions, architecture overview, and screenshots
+- [x] Comprehensive README written with setup instructions, architecture overview, deployment guide
   - **File:** `README.md`
