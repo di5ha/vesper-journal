@@ -332,7 +332,6 @@ function PersistentStatsBar({ entryCount }) {
         }}>
             {/* Streak */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                <span style={{ fontSize: '1.25rem' }}>🔥</span>
                 <div style={{ textAlign: 'center' }}>
                     <p style={{ fontSize: '1.375rem', fontWeight: 700, margin: 0, color: streak > 0 ? '#e97b5a' : 'var(--color-muted-fg)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{streak}</p>
                     <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>day streak</p>
@@ -343,7 +342,6 @@ function PersistentStatsBar({ entryCount }) {
 
             {/* Entry count */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
-                <span style={{ fontSize: '1.125rem' }}>📔</span>
                 <div style={{ textAlign: 'center' }}>
                     <p style={{ fontSize: '1.375rem', fontWeight: 700, margin: 0, color: 'var(--color-primary)', fontFamily: 'var(--font-serif)', lineHeight: 1 }}>{entryCount}</p>
                     <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>entries</p>
