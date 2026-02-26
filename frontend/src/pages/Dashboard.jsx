@@ -352,50 +352,6 @@ function PersistentStatsBar({ entryCount }) {
 
             <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
-            {/* 7-day sparkline — smooth area chart */}
-            {sparkline.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>7-day mood</p>
-                    <div style={{ width: '88px', height: '32px' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={sparkline} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-                                <defs>
-                                    <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
-                                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.04} />
-                                    </linearGradient>
-                                </defs>
-                                <ReTooltip
-                                    content={({ active, payload }) => {
-                                        if (!active || !payload?.length || payload[0].value == null) return null
-                                        const d = payload[0].payload
-                                        return (
-                                            <div style={{ background: 'rgba(253,251,248,0.96)', border: '1px solid rgba(200,195,185,0.5)', borderRadius: '0.5rem', padding: '4px 8px', fontSize: '0.6875rem', fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px rgba(0,0,0,0.10)', whiteSpace: 'nowrap' }}>
-                                                <span style={{ color: 'var(--color-muted-fg)' }}>{d.date}&nbsp;</span>
-                                                <strong style={{ color: 'var(--color-primary)' }}>{Number(d.mood).toFixed(1)}</strong>
-                                            </div>
-                                        )
-                                    }}
-                                    cursor={false}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="mood"
-                                    stroke="var(--color-primary)"
-                                    strokeWidth={2}
-                                    fill="url(#sparkFill)"
-                                    dot={false}
-                                    activeDot={{ r: 3, fill: 'var(--color-primary)', stroke: 'none' }}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-            )}
-
-
-            <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
-
             {/* Generate report */}
             <button onClick={handleGenerate} disabled={generating}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0, padding: '0.4375rem 1rem', borderRadius: '9999px', border: '1px solid rgba(200,195,185,0.6)', background: 'rgba(253,251,248,0.7)', cursor: generating ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-muted-fg)', transition: 'all 0.15s' }}
