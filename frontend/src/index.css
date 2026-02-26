@@ -408,3 +408,134 @@
         transform: rotate(360deg);
     }
 }
+
+/* ── Focus-visible rings (keyboard accessibility / WCAG AA) ─────────────── */
+:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+}
+
+/* Tighter radius for pill buttons */
+.btn-primary:focus-visible,
+.btn-ghost:focus-visible {
+    border-radius: 9999px;
+}
+
+/* Remove outline for mouse users — only show for keyboard */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ── Insight card breathing pulse ───────────────────────────────────────── */
+@keyframes insightPulse {
+    0% {
+        box-shadow: 0 0 0 0px oklch(0.50 0.10 170 / 0.00), 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+
+    50% {
+        box-shadow: 0 0 0 6px oklch(0.50 0.10 170 / 0.08), 0 4px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0px oklch(0.50 0.10 170 / 0.00), 0 1px 4px rgba(0, 0, 0, 0.06);
+    }
+}
+
+.insight-pulse {
+    animation: insightPulse 3.6s ease-in-out infinite;
+}
+
+/* ── Responsive sidebar ──────────────────────────────────────────────────── */
+
+/* On tablet / narrow desktop, sidebar is hidden by default, slides in as overlay */
+@media (max-width: 900px) {
+    .sidebar-responsive {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 50;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s;
+        box-shadow: none;
+    }
+
+    .sidebar-responsive.sidebar-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 40px rgba(0, 0, 0, 0.14);
+    }
+
+    /* Scrim behind open sidebar */
+    .sidebar-scrim {
+        display: block !important;
+    }
+
+    /* Hamburger toggle — visible on small screens */
+    .sidebar-toggle {
+        display: flex !important;
+    }
+}
+
+@media (min-width: 901px) {
+
+    /* On wide screens: sidebar always visible, no toggle needed */
+    .sidebar-responsive {
+        transform: translateX(0) !important;
+        position: relative !important;
+        box-shadow: none !important;
+    }
+
+    .sidebar-scrim {
+        display: none !important;
+    }
+
+    .sidebar-toggle {
+        display: none !important;
+    }
+}
+
+/* Scrim — hidden by default */
+.sidebar-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    background: rgba(30, 25, 20, 0.35);
+    backdrop-filter: blur(2px);
+}
+
+/* Hamburger — hidden by default (shown via media query above) */
+.sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 0.75rem;
+    left: 0.875rem;
+    z-index: 60;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.625rem;
+    border: 1px solid rgba(200, 195, 185, 0.55);
+    background: rgba(253, 251, 248, 0.90);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-foreground);
+    transition: background 0.15s;
+}
+
+.sidebar-toggle:hover {
+    background: rgba(253, 251, 248, 1);
+}
+
+/* ── Page transition wrappers (framer-motion) ───────────────────────────── */
+.page-enter {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.page-exit {
+    opacity: 0;
+    transform: translateY(-4px);
+}

@@ -123,7 +123,7 @@ export default function InsightPanel({ entryId, analysis, analyzing }) {
 
     return (
         <aside
-            className={`w-72 shrink-0 border-l border-white/5 overflow-y-auto transition-opacity duration-500 ${visible ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-72 shrink-0 border-l border-white/5 overflow-y-auto transition-opacity duration-500 insight-pulse ${visible ? 'opacity-100' : 'opacity-0'}`}
         >
             {/* Header */}
             <header className="px-5 pt-5 pb-3">

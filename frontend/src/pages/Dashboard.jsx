@@ -490,12 +490,24 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
                 />
             </div>
 
-            {/* Word count */}
-            <div style={{ padding: '0.5rem 4rem', borderTop: '1px solid var(--color-border)', flexShrink: 0 }}>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)' }}>
-                    {body.trim() ? body.trim().split(/\s+/).length : 0} words
-                </span>
-            </div>
+            {/* Word count + short-entry prompt */}
+            {(() => {
+                const wc = body.trim() ? body.trim().split(/\s+/).length : 0
+                const tooShort = body.trim().length > 0 && wc < 20
+                return (
+                    <div style={{ padding: '0.5rem 4rem', borderTop: '1px solid var(--color-border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                        {tooShort ? (
+                            <span style={{ fontSize: '0.75rem', color: '#c47a35', background: 'rgba(228,160,70,0.10)', border: '1px solid rgba(228,160,70,0.25)', borderRadius: '9999px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                                ✍️ Keep going — aim for at least 20 words for better AI insights ({20 - wc} more to go)
+                            </span>
+                        ) : <span />}
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--color-muted-fg)', flexShrink: 0 }}>
+                            {wc} {wc === 1 ? 'word' : 'words'}
+                        </span>
+                    </div>
+                )
+            })()}
+
         </div>
     )
 }
@@ -582,6 +594,7 @@ export default function Dashboard() {
     const [query, setQuery] = useState('')
     const [searchResults, setSearchResults] = useState(null)   // null = not searching
     const [searching, setSearching] = useState(false)
+    const [sidebarOpen, setSidebarOpen] = useState(false)
     const debounceRef = useRef(null)
 
     const load = useCallback(() => {
@@ -632,16 +645,33 @@ export default function Dashboard() {
                 <div className="blob blob-deep" style={{ width: '800px', height: '800px', bottom: '-20%', left: '40%' }} />
             </div>
 
+            {/* ── Hamburger toggle (tablet only, shown via CSS) ── */}
+            <button
+                className="sidebar-toggle"
+                onClick={() => setSidebarOpen(o => !o)}
+                aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
+            >
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    {sidebarOpen
+                        ? <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                        : <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />}
+                </svg>
+            </button>
+
+            {/* ── Scrim (tablet only) ── */}
+            {sidebarOpen && <div className="sidebar-scrim" onClick={() => setSidebarOpen(false)} />}
+
             {/* ── Left sidebar ── */}
-            <aside style={{
-                position: 'relative', zIndex: 1,
+            <aside className={`sidebar-responsive${sidebarOpen ? ' sidebar-open' : ''}`} style={{
+                zIndex: 1,
                 width: '256px', flexShrink: 0, display: 'flex', flexDirection: 'column',
                 borderRight: '1px solid rgba(200,195,185,0.5)',
-                background: 'rgba(253,251,248,0.75)',
+                background: 'rgba(253,251,248,0.95)',
                 backdropFilter: 'blur(22px) saturate(1.3)',
                 WebkitBackdropFilter: 'blur(22px) saturate(1.3)',
                 overflow: 'hidden',
             }}>
+
 
                 {/* Brand row */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.875rem 0.875rem 0.625rem' }}>
