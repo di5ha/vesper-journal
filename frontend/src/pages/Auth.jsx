@@ -90,68 +90,44 @@ export default function Auth() {
 function LandingContent({ onLogin, onSignup }) {
     const features = [
         {
+            Icon: BarChart2,
+            title: 'Drift Timeline',
+            desc: 'Pick any topic and watch your emotional relationship with it change over weeks and months — a visual journey through your mind.',
+        },
+        {
             Icon: PenLine,
-            title: 'Write freely',
-            desc: 'A distraction-free writing experience designed for reflection and mindfulness.',
+            title: 'Real-time AI Analysis',
+            desc: 'Every entry is analysed for mood, recurring themes, and cognitive patterns using a CBT framework — automatically, as you write.',
         },
         {
             Icon: Lock,
-            title: 'Completely private',
-            desc: 'Your entries are encrypted and accessible only to you. No one else can read them.',
-        },
-        {
-            Icon: BarChart2,
-            title: 'Track your moods',
-            desc: 'Tag entries with moods to discover patterns and understand yourself better.',
+            title: 'Semantic Search',
+            desc: 'Find any memory or feeling with meaning-based search. Ask "show me entries where I felt hopeful" and actually get them.',
         },
     ]
 
     return (
         <>
             {/* ── Hero ─────────────────────────────────────────────────────── */}
-            <section style={{ textAlign: 'center', padding: '4rem 1rem 3rem' }}>
+            <section style={{ textAlign: 'center', padding: '3rem 1rem 3rem' }}>
+                {/* Headline */}
                 <h1 style={{
                     fontFamily: 'var(--font-serif)',
                     fontSize: 'clamp(2.5rem, 6vw, 4rem)',
                     fontWeight: 700,
                     lineHeight: 1.15,
                     color: 'var(--color-foreground)',
-                    margin: '0 auto 1rem',
+                    margin: '0 auto 2rem',
                     maxWidth: '28rem',
                     letterSpacing: '-0.02em',
                 }}>
                     A quiet space for<br />your thoughts
                 </h1>
 
-                <p style={{
-                    fontSize: '1.0625rem',
-                    color: 'var(--color-muted-fg)',
-                    lineHeight: 1.7,
-                    maxWidth: '26rem',
-                    margin: '0 auto 2.25rem',
-                }}>
-                    Capture your days, reflect on your journey, and find clarity through writing.
-                    Your personal journal, always private, always yours.
-                </p>
-
-                {/* CTA buttons */}
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.875rem', flexWrap: 'wrap', marginBottom: '3.5rem' }}>
-                    <button onClick={onSignup} className="btn-primary"
-                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', fontSize: '1rem', fontWeight: 600 }}>
-                        Start journaling
-                    </button>
-                    <button onClick={onLogin}
-                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', border: '1.5px solid rgba(180,175,165,0.7)', background: 'rgba(253,251,248,0.75)', backdropFilter: 'blur(12px)', cursor: 'pointer', fontSize: '1rem', fontWeight: 600, color: 'var(--color-foreground)', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.95)'; e.currentTarget.style.borderColor = 'var(--color-primary)' }}
-                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.75)'; e.currentTarget.style.borderColor = 'rgba(180,175,165,0.7)' }}>
-                        Sign in
-                    </button>
-                </div>
-
-                {/* Illustration */}
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                {/* Illustration — directly below headline */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
                     <div style={{
-                        width: '260px', height: '260px',
+                        width: '220px', height: '220px',
                         borderRadius: '50%',
                         overflow: 'hidden',
                         background: 'rgba(253,251,248,0.70)',
@@ -165,6 +141,44 @@ function LandingContent({ onLogin, onSignup }) {
                             style={{ width: '90%', height: '90%', objectFit: 'contain' }}
                         />
                     </div>
+                </div>
+
+                {/* Tagline from PRD */}
+                <p style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: '1rem',
+                    color: 'var(--color-muted-fg)',
+                    fontStyle: 'italic',
+                    margin: '0 auto 0.5rem',
+                    maxWidth: '20rem',
+                    letterSpacing: '0.01em',
+                }}>
+                    &#8220;Your mind is changing. Watch it happen.&#8221;
+                </p>
+
+                <p style={{
+                    fontSize: '1.0625rem',
+                    color: 'var(--color-muted-fg)',
+                    lineHeight: 1.7,
+                    maxWidth: '26rem',
+                    margin: '0.75rem auto 2.25rem',
+                }}>
+                    Write daily. Your AI journal analyses mood, surfaces patterns,
+                    and shows how your thinking evolves — entry by entry.
+                </p>
+
+                {/* CTA buttons */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
+                    <button onClick={onSignup} className="btn-primary"
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', fontSize: '1rem', fontWeight: 600 }}>
+                        Start journaling
+                    </button>
+                    <button onClick={onLogin}
+                        style={{ padding: '0.75rem 1.75rem', borderRadius: '9999px', border: '1.5px solid rgba(180,175,165,0.7)', background: 'rgba(253,251,248,0.75)', backdropFilter: 'blur(12px)', cursor: 'pointer', fontSize: '1rem', fontWeight: 600, color: 'var(--color-foreground)', transition: 'all 0.15s' }}
+                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.95)'; e.currentTarget.style.borderColor = 'var(--color-primary)' }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.75)'; e.currentTarget.style.borderColor = 'rgba(180,175,165,0.7)' }}>
+                        Sign in
+                    </button>
                 </div>
             </section>
 

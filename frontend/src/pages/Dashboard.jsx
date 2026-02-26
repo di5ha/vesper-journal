@@ -6,6 +6,7 @@ import {
     getEntries, getEntry, createEntry, updateEntry,
     deleteEntry, searchEntries, getAnalysis, getDashboardStats, generateReport,
 } from '../lib/api'
+import { AreaChart, Area, ResponsiveContainer, Tooltip as ReTooltip } from 'recharts'
 
 import {
     BookOpen, LogOut, Plus, Search, BookMarked,
@@ -351,21 +352,47 @@ function PersistentStatsBar({ entryCount }) {
 
             <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
-            {/* 7-day sparkline */}
+            {/* 7-day sparkline — smooth area chart */}
             {sparkline.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>7-day mood</p>
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '28px' }}>
-                        {sparkline.map((d, i) => {
-                            const h = d.mood ? Math.max(Math.round(((d.mood - 1) / 9) * 26), 4) : 4
-                            const hue = d.mood ? Math.round(((d.mood - 1) / 9) * 140) : 0
-                            const c = d.mood ? `hsl(${hue},72%,48%)` : 'var(--color-muted)'
-                            return <div key={i} title={d.mood ? `${d.date}: ${d.mood.toFixed(1)}` : 'No entry'}
-                                style={{ width: '14px', height: `${h}px`, background: c, borderRadius: '3px 3px 0 0', opacity: d.mood ? 1 : 0.2, transition: 'height 0.3s' }} />
-                        })}
+                    <p style={{ fontSize: '0.5625rem', margin: 0, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.07em', fontFamily: 'var(--font-sans, Inter, sans-serif)' }}>7-day mood</p>
+                    <div style={{ width: '88px', height: '32px' }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={sparkline} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
+                                <defs>
+                                    <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4} />
+                                        <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0.04} />
+                                    </linearGradient>
+                                </defs>
+                                <ReTooltip
+                                    content={({ active, payload }) => {
+                                        if (!active || !payload?.length || payload[0].value == null) return null
+                                        const d = payload[0].payload
+                                        return (
+                                            <div style={{ background: 'rgba(253,251,248,0.96)', border: '1px solid rgba(200,195,185,0.5)', borderRadius: '0.5rem', padding: '4px 8px', fontSize: '0.6875rem', fontFamily: 'Inter, sans-serif', boxShadow: '0 4px 12px rgba(0,0,0,0.10)', whiteSpace: 'nowrap' }}>
+                                                <span style={{ color: 'var(--color-muted-fg)' }}>{d.date}&nbsp;</span>
+                                                <strong style={{ color: 'var(--color-primary)' }}>{Number(d.mood).toFixed(1)}</strong>
+                                            </div>
+                                        )
+                                    }}
+                                    cursor={false}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="mood"
+                                    stroke="var(--color-primary)"
+                                    strokeWidth={2}
+                                    fill="url(#sparkFill)"
+                                    dot={false}
+                                    activeDot={{ r: 3, fill: 'var(--color-primary)', stroke: 'none' }}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
             )}
+
 
             <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
 
