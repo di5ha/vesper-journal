@@ -25,7 +25,7 @@ app = FastAPI(
 # ---------------------------------------------------------------------------
 import os
 
-_raw = os.getenv("FRONTEND_URL", "http://localhost:5173")
+_raw = os.getenv("FRONTEND_URL", "http://localhost:5173", "*")
 _allowed_origins = [o.strip() for o in _raw.split(",") if o.strip()]
 
 app.add_middleware(
