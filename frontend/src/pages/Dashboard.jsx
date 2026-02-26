@@ -618,7 +618,7 @@ export default function Dashboard() {
 
     // What to show in sidebar list
     const listItems = searchResults !== null
-        ? searchResults.map(r => ({ entry: r, score: r.score }))
+        ? searchResults.map(r => ({ entry: r, score: r.similarity }))
         : entries.map(e => ({ entry: e, score: null }))
 
     function selectEntry(id) { setSearchParams({ entry: id }) }
