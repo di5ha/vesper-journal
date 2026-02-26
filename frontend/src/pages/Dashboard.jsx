@@ -348,16 +348,6 @@ function PersistentStatsBar({ entryCount }) {
                 </div>
             </div>
 
-            <div style={{ width: '1px', height: '32px', background: 'rgba(200,195,185,0.5)', flexShrink: 0 }} />
-
-            {/* Generate report */}
-            <button onClick={handleGenerate} disabled={generating}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0, padding: '0.4375rem 1rem', borderRadius: '9999px', border: '1px solid rgba(200,195,185,0.6)', background: 'rgba(253,251,248,0.7)', cursor: generating ? 'not-allowed' : 'pointer', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-muted-fg)', transition: 'all 0.15s' }}
-                onMouseEnter={e => { if (!generating) { e.currentTarget.style.background = 'var(--color-primary)'; e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'transparent' } }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(253,251,248,0.7)'; e.currentTarget.style.color = 'var(--color-muted-fg)'; e.currentTarget.style.borderColor = 'rgba(200,195,185,0.6)' }}>
-                <FileText size={13} />
-                {generating ? 'Generating…' : 'Generate report'}
-            </button>
         </div>
     )
 }
@@ -727,32 +717,35 @@ export default function Dashboard() {
                     ))}
                 </div>
 
-                {/* Bottom nav — prominent card buttons */}
-                <div style={{ borderTop: '1px solid rgba(200,195,185,0.5)', padding: '0.625rem' }}>
+                {/* Bottom nav — Drift & Reports */}
+                <div style={{ borderTop: '2px solid rgba(80,170,140,0.18)', padding: '0.5rem 0.625rem 0.625rem' }}>
+                    <p style={{ fontSize: '0.5625rem', fontWeight: 700, color: 'var(--color-muted-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.25rem 0.5rem 0.375rem', margin: 0 }}>Explore</p>
                     {[
                         { label: 'Drift', sub: 'Mood timeline', path: '/drift', Icon: BarChart2 },
                         { label: 'Reports', sub: 'AI weekly digest', path: '/reports', Icon: FileText },
                     ].map(({ label, sub, path, Icon }) => (
                         <button key={path} onClick={() => navigate(path)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', width: '100%', padding: '0.625rem 0.625rem', borderRadius: '0.625rem', border: 'none', background: 'transparent', cursor: 'pointer', marginBottom: '0.25rem', transition: 'background 0.15s', textAlign: 'left' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', width: '100%', padding: '0.5rem 0.625rem', borderRadius: '0.625rem', border: 'none', background: 'transparent', cursor: 'pointer', marginBottom: '0.125rem', transition: 'background 0.15s', textAlign: 'left', borderLeft: '3px solid transparent' }}
                             onMouseEnter={e => {
                                 e.currentTarget.style.background = 'oklch(0.50 0.10 170 / 0.10)'
+                                e.currentTarget.style.borderLeftColor = 'var(--color-primary)'
                                 e.currentTarget.querySelector('.nav-icon').style.background = 'var(--color-primary)'
                                 e.currentTarget.querySelector('.nav-icon').style.color = '#fff'
                                 e.currentTarget.querySelector('.nav-label').style.color = 'var(--color-primary)'
                             }}
                             onMouseLeave={e => {
                                 e.currentTarget.style.background = 'transparent'
+                                e.currentTarget.style.borderLeftColor = 'transparent'
                                 e.currentTarget.querySelector('.nav-icon').style.background = 'oklch(0.50 0.10 170 / 0.10)'
                                 e.currentTarget.querySelector('.nav-icon').style.color = 'var(--color-primary)'
                                 e.currentTarget.querySelector('.nav-label').style.color = 'var(--color-foreground)'
                             }}>
-                            <span className="nav-icon" style={{ width: '2rem', height: '2rem', borderRadius: '0.5rem', background: 'oklch(0.50 0.10 170 / 0.10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
-                                <Icon size={15} />
+                            <span className="nav-icon" style={{ width: '2.125rem', height: '2.125rem', borderRadius: '0.5rem', background: 'oklch(0.50 0.10 170 / 0.10)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.15s, color 0.15s' }}>
+                                <Icon size={16} />
                             </span>
                             <div>
-                                <p className="nav-label" style={{ fontSize: '0.8125rem', fontWeight: 600, margin: 0, color: 'var(--color-foreground)', lineHeight: 1.2, transition: 'color 0.15s' }}>{label}</p>
-                                <p style={{ fontSize: '0.6875rem', margin: 0, color: 'var(--color-muted-fg)', lineHeight: 1.2 }}>{sub}</p>
+                                <p className="nav-label" style={{ fontSize: '0.875rem', fontWeight: 600, margin: 0, color: 'var(--color-foreground)', lineHeight: 1.2, transition: 'color 0.15s' }}>{label}</p>
+                                <p style={{ fontSize: '0.6875rem', margin: 0, color: 'var(--color-muted-fg)', lineHeight: 1.3 }}>{sub}</p>
                             </div>
                         </button>
                     ))}

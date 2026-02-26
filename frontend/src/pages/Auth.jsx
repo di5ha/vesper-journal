@@ -26,11 +26,11 @@ export default function Auth() {
                 backdropFilter: 'blur(20px)',
                 borderBottom: '1px solid rgba(200,195,185,0.45)',
             }}>
-                <div style={{ maxWidth: '64rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', height: '56px' }}>
+                <div style={{ maxWidth: '64rem', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.5rem', height: '72px' }}>
                     {/* Logo */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--color-primary)' }}>
-                        <BookOpen size={20} />
-                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.125rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-foreground)' }}>vesper</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--color-primary)' }}>
+                        <BookOpen size={28} />
+                        <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.625rem', fontWeight: 700, letterSpacing: '-0.02em', color: 'var(--color-foreground)' }}>vesper</span>
                     </div>
 
                     {/* Nav actions */}
