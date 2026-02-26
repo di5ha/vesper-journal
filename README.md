@@ -10,6 +10,7 @@
 [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&logo=react)](https://react.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-pgvector-3ECF8E?style=flat-square&logo=supabase)](https://supabase.com)
 [![LiteLLM](https://img.shields.io/badge/LiteLLM-proxy-7C3AED?style=flat-square)](https://litellm.ai)
+[![Live](https://img.shields.io/badge/Live-vesper--journal.vercel.app-000000?style=flat-square&logo=vercel)](https://vesper-journal.vercel.app)
 
 </div>
 
@@ -128,7 +129,7 @@ App available at **<http://localhost:5173>**
 4. In the Render dashboard, set the **secret** environment variables:
    - `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_KEY`
    - `LITELLM_API_KEY`, `LITELLM_BASE_URL`
-   - `FRONTEND_URL` → your Vercel URL (e.g. `https://vesper.vercel.app`)
+   - `FRONTEND_URL` → `https://vesper-journal.vercel.app`
 
 ### Frontend → Vercel
 
