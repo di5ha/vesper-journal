@@ -459,11 +459,11 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             {/* Top bar */}
             <div className="editor-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.75rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0, gap: '0.75rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
+                <div className="editor-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ fontFamily: 'var(--font-serif)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dateLabel}</span>
                     <MoodPicker mood={mood} onChange={m => { setMood(m); setDirty(true) }} />
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="editor-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                     {error && <span style={{ fontSize: '0.8125rem', color: 'var(--color-destructive)', flexShrink: 0 }}>{error}</span>}
                     {!isNew && <OptionsMenu onDelete={handleDelete} />}
                     <button onClick={handleSave} disabled={saving || (!dirty && !isNew)} className="btn-primary"
