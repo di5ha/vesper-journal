@@ -794,27 +794,24 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* ── Right panel + mobile insight overlay ── */}
-            <div
-                className={`mobile-insight-overlay${insightsOpen ? ' insight-open' : ''}`}
-                style={{ position: 'relative', zIndex: 1, display: 'flex', flexShrink: 0 }}
-            >
-                {/* Close button — mobile only */}
-                <button
-                    onClick={() => setInsightsOpen(false)}
-                    style={{
-                        display: 'none',
-                        position: 'sticky', top: '0.75rem', right: '1rem', float: 'right',
-                        zIndex: 10, margin: '0.75rem 1rem 0 auto',
-                        background: 'var(--color-muted)', border: '1px solid var(--color-border)',
-                        borderRadius: '9999px', padding: '0.25rem 0.75rem',
-                        fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
-                        color: 'var(--color-muted-fg)',
-                    }}
-                    className="mobile-close-btn"
-                >
-                    ✕ Close
-                </button>
+            {/* ── Desktop right panel (hidden on mobile via CSS) ── */}
+            <div className="desktop-right-panel" style={{ position: 'relative', zIndex: 1, display: 'flex', flexShrink: 0 }}>
+                {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
+                {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
+            </div>
+
+            {/* ── Mobile insight overlay (pure CSS positioning, no inline conflicts) ── */}
+            <div className={`mobile-insight-overlay${insightsOpen ? ' insight-open' : ''}`}>
+                {/* Header row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 1.25rem 0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1rem', fontWeight: 700, color: 'var(--color-foreground)' }}>Insights</span>
+                    <button
+                        onClick={() => setInsightsOpen(false)}
+                        style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: '9999px', padding: '0.25rem 0.875rem', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', color: 'var(--color-muted-fg)' }}
+                    >
+                        ✕ Close
+                    </button>
+                </div>
                 {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
                 {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
             </div>

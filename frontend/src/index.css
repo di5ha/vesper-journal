@@ -551,8 +551,8 @@
 ───────────────────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
 
-    /* ── Hide the right panel (InsightPanel / DashboardStatsPanel) ── */
-    .mobile-hide-right {
+    /* ── Hide the desktop right panel on mobile (overlaid separately) ── */
+    .desktop-right-panel {
         display: none !important;
     }
 
