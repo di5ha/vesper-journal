@@ -556,6 +556,11 @@
         display: none !important;
     }
 
+    /* ── Editor top bar — tighter padding so Update button stays on screen ── */
+    .editor-topbar {
+        padding: 0.625rem 1rem !important;
+    }
+
     /* ── Add bottom clearance so content isn't hidden under tab bar ── */
     .mobile-main-content {
         padding-bottom: 4rem !important;
