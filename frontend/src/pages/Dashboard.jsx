@@ -663,7 +663,6 @@ export default function Dashboard() {
 
             {/* ── Left sidebar ── */}
             <aside className={`sidebar-responsive${sidebarOpen ? ' sidebar-open' : ''}`} style={{
-                zIndex: 1,
                 width: '256px', flexShrink: 0, display: 'flex', flexDirection: 'column',
                 borderRight: '1px solid rgba(200,195,185,0.5)',
                 background: 'rgba(253,251,248,0.95)',
