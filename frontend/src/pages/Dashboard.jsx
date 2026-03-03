@@ -353,42 +353,6 @@ function PersistentStatsBar({ entryCount }) {
 }
 
 
-// ─────────────────────────────────────────────────────────────────────────────
-function MoodPicker({ mood, onChange }) {
-    const [open, setOpen] = useState(false)
-    const selected = MOODS.find(m => m.value === mood)
-    return (
-        <div style={{ position: 'relative' }}>
-            <button onClick={() => setOpen(o => !o)} title="Set mood"
-                style={{
-                    display: 'flex', alignItems: 'center', gap: '0.375rem',
-                    background: mood ? 'oklch(0.50 0.10 170 / 0.10)' : 'var(--color-muted)',
-                    border: 'none', borderRadius: '9999px', cursor: 'pointer',
-                    padding: '0.3rem 0.625rem', fontSize: '0.8125rem', fontWeight: 600,
-                    color: mood ? 'var(--color-primary)' : 'var(--color-muted-fg)',
-                    transition: 'all 0.15s',
-                }}>
-                {selected ? <>{selected.emoji} {selected.label}</> : '🙂 Mood'}
-            </button>
-            {open && (
-                <>
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-                    <div style={{ position: 'absolute', left: 0, top: '2.25rem', zIndex: 50, background: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '0.875rem', boxShadow: '0 12px 40px rgba(0,0,0,0.12)', minWidth: '158px', overflow: 'hidden' }}>
-                        {MOODS.map(m => (
-                            <button key={m.value} onClick={() => { onChange(mood === m.value ? '' : m.value); setOpen(false) }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.5rem 0.75rem', border: 'none', background: mood === m.value ? 'oklch(0.50 0.10 170 / 0.10)' : 'transparent', cursor: 'pointer', fontSize: '0.875rem', fontWeight: 500, color: mood === m.value ? 'var(--color-primary)' : 'var(--color-foreground)', transition: 'background 0.1s' }}
-                                onMouseEnter={e => { if (mood !== m.value) e.currentTarget.style.background = 'var(--color-muted)' }}
-                                onMouseLeave={e => { if (mood !== m.value) e.currentTarget.style.background = 'transparent' }}>
-                                <span>{m.emoji}</span>{m.label}
-                            </button>
-                        ))}
-                        {mood && <button onClick={() => { onChange(''); setOpen(false) }} style={{ width: '100%', padding: '0.4rem 0.75rem', border: 'none', borderTop: '1px solid var(--color-border)', background: 'transparent', cursor: 'pointer', fontSize: '0.8125rem', color: 'var(--color-muted-fg)' }}>Clear</button>}
-                    </div>
-                </>
-            )}
-        </div>
-    )
-}
 
 // Options menu
 function OptionsMenu({ onDelete }) {
@@ -415,7 +379,6 @@ function OptionsMenu({ onDelete }) {
 // ─────────────────────────────────────────────────────────────────────────────
 function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
     const [body, setBody] = useState('')
-    const [mood, setMood] = useState('')
     const [loading, setLoading] = useState(!isNew)
     const [saving, setSaving] = useState(false)
     const [error, setError] = useState(null)
@@ -423,12 +386,12 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
     const [dateLabel, setDateLabel] = useState(format(new Date(), 'EEEE, MMMM d'))
 
     useEffect(() => {
-        if (isNew) { setBody(''); setMood(''); setDirty(false); setLoading(false); setDateLabel(format(new Date(), 'EEEE, MMMM d')); return }
+        if (isNew) { setBody(''); setDirty(false); setLoading(false); setDateLabel(format(new Date(), 'EEEE, MMMM d')); return }
         setLoading(true)
         getEntry(entryId)
             .then(e => {
-                const { mood: m, body: b } = unpackContent(e.content)
-                setMood(m); setBody(b); setDirty(false)
+                const { body: b } = unpackContent(e.content)
+                setBody(b); setDirty(false)
                 setDateLabel(format(new Date(e.created_at), 'EEEE, MMMM d'))
             })
             .catch(e => setError(e.message))
@@ -438,7 +401,7 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
     async function handleSave() {
         setSaving(true); setError(null)
         try {
-            const packed = packContent(mood, body)
+            const packed = packContent('', body)
             if (isNew) { const e = await createEntry(packed); setDirty(false); onSaved(e) }
             else { const e = await updateEntry(entryId, packed); setDirty(false); onSaved(e) }
         } catch (e) { setError(e.message) } finally { setSaving(false) }
@@ -461,7 +424,6 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
             <div className="editor-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1.75rem', borderBottom: '1px solid var(--color-border)', flexShrink: 0, gap: '0.75rem' }}>
                 <div className="editor-topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, overflow: 'hidden' }}>
                     <span style={{ fontFamily: 'var(--font-serif)', fontSize: '0.9375rem', fontWeight: 600, color: 'var(--color-foreground)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{dateLabel}</span>
-                    <MoodPicker mood={mood} onChange={m => { setMood(m); setDirty(true) }} />
                 </div>
                 <div className="editor-topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
                     {error && <span style={{ fontSize: '0.8125rem', color: 'var(--color-destructive)', flexShrink: 0 }}>{error}</span>}
@@ -516,8 +478,6 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
 // Sidebar entry row
 // ─────────────────────────────────────────────────────────────────────────────
 function SidebarEntry({ entry, selected, onClick, score }) {
-    const { mood } = unpackContent(entry.content)
-    const moodObj = MOODS.find(m => m.value === mood)
     const text = snippet(entry.content)
 
     return (
@@ -546,7 +506,6 @@ function SidebarEntry({ entry, selected, onClick, score }) {
                             {Math.round(score * 100)}%
                         </span>
                     )}
-                    {moodObj && <span style={{ fontSize: '0.8125rem' }}>{moodObj.emoji}</span>}
                 </div>
             </div>
 

@@ -4,78 +4,6 @@ import { getEntry, createEntry, updateEntry, deleteEntry } from '../lib/api'
 import { ArrowLeft, MoreHorizontal, Loader2, Trash2, ChevronDown } from 'lucide-react'
 import { format } from 'date-fns'
 
-const MOODS = [
-    { value: 'happy', label: 'Happy', emoji: '😊' },
-    { value: 'calm', label: 'Calm', emoji: '😌' },
-    { value: 'grateful', label: 'Grateful', emoji: '🙏' },
-    { value: 'reflective', label: 'Reflective', emoji: '🤔' },
-    { value: 'anxious', label: 'Anxious', emoji: '😰' },
-    { value: 'sad', label: 'Sad', emoji: '😔' },
-]
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Mood Picker dropdown
-// ─────────────────────────────────────────────────────────────────────────────
-function MoodPicker({ mood, onChange }) {
-    const [open, setOpen] = useState(false)
-    const selected = MOODS.find(m => m.value === mood)
-
-    return (
-        <div style={{ position: 'relative' }}>
-            <button onClick={() => setOpen(o => !o)} className="btn-icon"
-                style={{ fontSize: '1.25rem', width: '2rem', height: '2rem' }}
-                title="Set mood">
-                {selected ? selected.emoji : '🙂'}
-            </button>
-
-            {open && (
-                <>
-                    {/* Backdrop */}
-                    <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-                    {/* Dropdown */}
-                    <div style={{
-                        position: 'absolute', right: 0, top: '2.5rem', zIndex: 50,
-                        background: 'var(--color-card)',
-                        border: '1px solid var(--color-border)',
-                        borderRadius: '0.875rem',
-                        boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                        minWidth: '140px',
-                        overflow: 'hidden',
-                    }}>
-                        {MOODS.map(m => (
-                            <button key={m.value}
-                                onClick={() => { onChange(mood === m.value ? '' : m.value); setOpen(false) }}
-                                style={{
-                                    display: 'flex', alignItems: 'center', gap: '0.625rem',
-                                    width: '100%', padding: '0.625rem 0.875rem',
-                                    border: 'none', cursor: 'pointer', textAlign: 'left',
-                                    background: mood === m.value ? 'var(--color-muted)' : 'transparent',
-                                    color: 'var(--color-foreground)',
-                                    fontSize: '0.875rem', fontWeight: 500,
-                                    transition: 'background 0.1s',
-                                }}
-                                onMouseEnter={e => { if (mood !== m.value) e.currentTarget.style.background = 'var(--color-muted)' }}
-                                onMouseLeave={e => { if (mood !== m.value) e.currentTarget.style.background = 'transparent' }}>
-                                <span style={{ fontSize: '1rem' }}>{m.emoji}</span> {m.label}
-                            </button>
-                        ))}
-                        {mood && (
-                            <button onClick={() => { onChange(''); setOpen(false) }}
-                                style={{
-                                    display: 'flex', width: '100%', padding: '0.5rem 0.875rem', border: 'none',
-                                    borderTop: '1px solid var(--color-border)', cursor: 'pointer',
-                                    background: 'transparent', color: 'var(--color-muted-fg)',
-                                    fontSize: '0.8125rem', fontWeight: 500,
-                                }}>
-                                Clear mood
-                            </button>
-                        )}
-                    </div>
-                </>
-            )}
-        </div>
-    )
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Options menu (delete)
@@ -127,7 +55,6 @@ export default function JournalEditorPage() {
 
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
-    const [mood, setMood] = useState('')
     const [loading, setLoading] = useState(!isNew)
     const [saving, setSaving] = useState(false)
     const [deleting, setDeleting] = useState(false)
@@ -146,29 +73,23 @@ export default function JournalEditorPage() {
             .then(entry => {
                 const raw = entry.content ?? ''
                 const lines = raw.split('\n')
-                // Format: line 0 = title (or ''), line 1 = mood tag '[mood: xxx]' or content start
                 const titleLine = lines[0] ?? ''
+                // Skip any legacy mood tag line
                 const moodMatch = (lines[1] ?? '').match(/^\[mood: (\w+)\]$/)
-                if (moodMatch) {
-                    setTitle(titleLine)
-                    setMood(moodMatch[1])
-                    setContent(lines.slice(2).join('\n').trimStart())
-                } else {
-                    setTitle(titleLine)
-                    setContent(lines.slice(1).join('\n').trimStart())
-                }
+                setTitle(titleLine)
+                setContent(moodMatch
+                    ? lines.slice(2).join('\n').trimStart()
+                    : lines.slice(1).join('\n').trimStart()
+                )
                 setDateLabel(format(new Date(entry.created_at), 'EEEE, MMMM d, yyyy'))
             })
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
     }, [id, isNew])
 
-    // Pack title + mood + body into a single content string for the API
+    // Pack title + body into a single content string for the API
     function packContent() {
-        const parts = [title]
-        if (mood) parts.push(`[mood: ${mood}]`)
-        parts.push(content)
-        return parts.join('\n').trimEnd()
+        return [title, content].join('\n').trimEnd()
     }
 
     async function handleSave() {
@@ -220,12 +141,11 @@ export default function JournalEditorPage() {
                     {!isNew && <OptionsMenu onDelete={handleDelete} deleting={deleting} />}
                 </div>
 
-                {/* ── Date + Mood row ── */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.25rem 0.5rem' }}>
+                {/* ── Date row ── */}
+                <div style={{ padding: '0 1.25rem 0.5rem' }}>
                     <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--color-muted-fg)', margin: 0 }}>
                         {dateLabel}
                     </p>
-                    <MoodPicker mood={mood} onChange={setMood} />
                 </div>
 
                 {/* ── Writing card ── */}
