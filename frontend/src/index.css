@@ -539,3 +539,111 @@
     opacity: 0;
     transform: translateY(-4px);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Mobile — ≤ 600px
+   Strategy:
+   • Single-column layout (sidebar as overlay, right panel hidden)
+   • Fixed bottom tab bar replaces sidebar Explore links on mobile
+   • Editor padding reduced from 4rem → 1rem
+   • Stats bar compacted
+   • Auth hero padding tightened
+───────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+
+    /* ── Hide the right panel (InsightPanel / DashboardStatsPanel) ── */
+    .mobile-hide-right {
+        display: none !important;
+    }
+
+    /* ── Add bottom clearance so content isn't hidden under tab bar ── */
+    .mobile-main-content {
+        padding-bottom: 4rem !important;
+    }
+
+    /* ── Reduce editor side padding ── */
+    .mobile-editor-pad {
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+    }
+
+    /* ── Word count bar padding ── */
+    .mobile-wordcount-pad {
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+    }
+
+    /* ── Compact stats bar ── */
+    .stats-bar-inner {
+        gap: 1rem !important;
+        padding: 0.5rem 1rem !important;
+        min-height: 48px !important;
+    }
+
+    /* ── Auth landing — tighten hero ── */
+    .auth-hero {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+
+    .auth-hero h1 {
+        font-size: clamp(1.75rem, 8vw, 2.5rem) !important;
+    }
+
+    /* ── Blob sizes — smaller on mobile to save perf ── */
+    .blob-scene .blob {
+        opacity: 0.55;
+    }
+}
+
+/* ── Mobile bottom tab bar ─────────────────────────────────────────────────── */
+.mobile-tab-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    height: 3.75rem;
+    background: rgba(253, 251, 248, 0.95);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border-top: 1px solid rgba(200, 195, 185, 0.55);
+    align-items: stretch;
+    justify-content: space-around;
+}
+
+@media (max-width: 600px) {
+    .mobile-tab-bar {
+        display: flex;
+    }
+}
+
+.mobile-tab-bar button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--color-muted-fg);
+    font-size: 0.5625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    transition: color 0.15s;
+    padding: 0.5rem 0;
+}
+
+.mobile-tab-bar button.tab-active,
+.mobile-tab-bar button:active {
+    color: var(--color-primary);
+}
+
+/* ── Prevent body scroll when mobile sidebar is open ── */
+body.sidebar-lock {
+    overflow: hidden;
+}

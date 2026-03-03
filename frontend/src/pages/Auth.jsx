@@ -109,7 +109,7 @@ function LandingContent({ onLogin, onSignup }) {
     return (
         <>
             {/* ── Hero ─────────────────────────────────────────────────────── */}
-            <section style={{ textAlign: 'center', padding: '3rem 1rem 3rem' }}>
+            <section className="auth-hero" style={{ textAlign: 'center', padding: '3rem 1rem 3rem' }}>
                 {/* Headline */}
                 <h1 style={{
                     fontFamily: 'var(--font-serif)',

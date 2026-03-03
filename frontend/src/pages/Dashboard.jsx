@@ -323,7 +323,7 @@ function PersistentStatsBar({ entryCount }) {
     }
 
     return (
-        <div style={{
+        <div className="stats-bar-inner" style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1.5rem', flexShrink: 0,
             padding: '0.75rem 1.5rem', borderBottom: '1px solid rgba(200,195,185,0.4)',
             background: 'rgba(253,251,248,0.55)',
@@ -474,7 +474,7 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
             </div>
 
             {/* Writing area */}
-            <div style={{ flex: 1, overflow: 'auto', padding: '2.5rem 4rem' }}>
+            <div className="mobile-editor-pad" style={{ flex: 1, overflow: 'auto', padding: '2.5rem 4rem' }}>
                 <textarea
                     autoFocus
                     placeholder="What's on your mind today?"
@@ -495,7 +495,7 @@ function InlineEditor({ entryId, isNew, onSaved, onDeleted }) {
                 const wc = body.trim() ? body.trim().split(/\s+/).length : 0
                 const tooShort = body.trim().length > 0 && wc < 20
                 return (
-                    <div style={{ padding: '0.5rem 4rem', borderTop: '1px solid var(--color-border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                    <div className="mobile-wordcount-pad" style={{ padding: '0.5rem 4rem', borderTop: '1px solid var(--color-border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                         {tooShort ? (
                             <span style={{ fontSize: '0.75rem', color: '#c47a35', background: 'rgba(228,160,70,0.10)', border: '1px solid rgba(228,160,70,0.25)', borderRadius: '9999px', padding: '2px 10px', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                                 ✍️ Keep going — aim for at least 20 words for better AI insights ({20 - wc} more to go)
@@ -783,7 +783,7 @@ export default function Dashboard() {
             </aside>
 
             {/* ── Center ── */}
-            <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'rgba(250,248,244,0.60)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+            <div className="mobile-main-content" style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, background: 'rgba(250,248,244,0.60)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
                 {/* Persistent stats bar — always on screen */}
                 <PersistentStatsBar entryCount={entries.length} />
                 {/* Content area */}
@@ -795,8 +795,36 @@ export default function Dashboard() {
             </div>
 
             {/* ── Right panel ── */}
-            {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
-            {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
+            <div className="mobile-hide-right">
+                {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
+                {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
+            </div>
+
+            {/* ── Mobile bottom tab bar (≤600px only) ── */}
+            <nav className="mobile-tab-bar">
+                <button
+                    className={!selectedId && !isNew ? 'tab-active' : ''}
+                    onClick={() => { setSidebarOpen(true) }}
+                >
+                    <BookOpen size={18} />
+                    Entries
+                </button>
+                <button
+                    className={isNew ? 'tab-active' : ''}
+                    onClick={newEntry}
+                >
+                    <Plus size={18} />
+                    Write
+                </button>
+                <button onClick={() => navigate('/drift')}>
+                    <BarChart2 size={18} />
+                    Drift
+                </button>
+                <button onClick={() => navigate('/reports')}>
+                    <FileText size={18} />
+                    Reports
+                </button>
+            </nav>
         </div>
     )
 }
