@@ -595,6 +595,7 @@ export default function Dashboard() {
     const [searchResults, setSearchResults] = useState(null)   // null = not searching
     const [searching, setSearching] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [insightsOpen, setInsightsOpen] = useState(false)
     const debounceRef = useRef(null)
 
     const load = useCallback(() => {
@@ -624,8 +625,8 @@ export default function Dashboard() {
         ? searchResults.map(r => ({ entry: r, score: r.similarity }))
         : entries.map(e => ({ entry: e, score: null }))
 
-    function selectEntry(id) { setSearchParams({ entry: id }) }
-    function newEntry() { setSearchParams({ new: '1' }) }
+    function selectEntry(id) { setSearchParams({ entry: id }); setSidebarOpen(false); setInsightsOpen(false) }
+    function newEntry() { setSearchParams({ new: '1' }); setInsightsOpen(false) }
 
     function handleSaved(saved) {
         load()
@@ -793,8 +794,27 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* ── Right panel ── */}
-            <div className="mobile-hide-right">
+            {/* ── Right panel + mobile insight overlay ── */}
+            <div
+                className={`mobile-insight-overlay${insightsOpen ? ' insight-open' : ''}`}
+                style={{ position: 'relative', zIndex: 1, display: 'flex', flexShrink: 0 }}
+            >
+                {/* Close button — mobile only */}
+                <button
+                    onClick={() => setInsightsOpen(false)}
+                    style={{
+                        display: 'none',
+                        position: 'sticky', top: '0.75rem', right: '1rem', float: 'right',
+                        zIndex: 10, margin: '0.75rem 1rem 0 auto',
+                        background: 'var(--color-muted)', border: '1px solid var(--color-border)',
+                        borderRadius: '9999px', padding: '0.25rem 0.75rem',
+                        fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                        color: 'var(--color-muted-fg)',
+                    }}
+                    className="mobile-close-btn"
+                >
+                    ✕ Close
+                </button>
                 {!selectedId && !isNew && <DashboardStatsPanel entryCount={entries.length} />}
                 {(selectedId || isNew) && <EntryInsightPanel entryId={selectedId} />}
             </div>
@@ -815,6 +835,15 @@ export default function Dashboard() {
                     <Plus size={18} />
                     Write
                 </button>
+                {(selectedId || isNew) && (
+                    <button
+                        className={insightsOpen ? 'tab-active' : ''}
+                        onClick={() => setInsightsOpen(o => !o)}
+                    >
+                        <BookMarked size={18} />
+                        Insights
+                    </button>
+                )}
                 <button onClick={() => navigate('/drift')}>
                     <BarChart2 size={18} />
                     Drift

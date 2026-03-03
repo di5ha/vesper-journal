@@ -647,3 +647,45 @@
 body.sidebar-lock {
     overflow: hidden;
 }
+
+/* ── Mobile Insight overlay — slides up from bottom ─────────────────────── */
+.mobile-insight-overlay {
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .mobile-insight-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 55;
+        background: rgba(253, 251, 248, 0.98);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        transform: translateY(100%);
+        transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow-y: auto;
+        padding-bottom: 4.5rem;
+        /* clear tab bar */
+    }
+
+    .mobile-insight-overlay.insight-open {
+        transform: translateY(0);
+    }
+
+    /* Show close button inside overlay on mobile */
+    .mobile-close-btn {
+        display: block !important;
+    }
+
+    /* Drag handle */
+    .mobile-insight-overlay::before {
+        content: '';
+        display: block;
+        width: 36px;
+        height: 4px;
+        background: rgba(120, 115, 105, 0.25);
+        border-radius: 9999px;
+        margin: 0.75rem auto 0;
+    }
+}
